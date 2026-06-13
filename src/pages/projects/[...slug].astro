@@ -2,10 +2,10 @@
 /**
  * projects/[...slug].astro — a project "room" (brief §2, §3).
  *
- * Pass 1 stub: one page per project from the collection, inside the constant
- * Shell. Gated projects render the Seal + PasscodePrompt and keep the room body
- * hidden until the casual code is entered. Themed interiors per project type
- * (game / sketch / UX / AI) arrive when prototypes are migrated.
+ * One page per project from the collection, inside the constant Shell. Gated
+ * projects keep the room body hidden behind the passcode gate (reveal mode);
+ * once unlocked (this session) the body shows. Themed interiors per project type
+ * arrive as each real project is built.
  */
 import { getCollection, render } from "astro:content";
 import Shell from "@layouts/Shell.astro";
@@ -22,24 +22,40 @@ export async function getStaticPaths() {
 
 const { project } = Astro.props;
 const { Content } = await render(project);
-const { title, summary, category, gated, passcode } = project.data;
+const { title, summary, label, category, gated, passcode, code } = project.data;
 ---
 
 <Shell title={`${title} — The Warehouse`} description={summary} back>
-  <article class="room">
+  <article
+    class="room"
+    data-slug={project.id}
+    data-gated={gated ? "1" : undefined}
+    data-code={passcode}
+  >
     <header class="room-head">
-      <span class="cat">{category}</span>
+      <span class="cat">{label ?? category.toLowerCase()}</span>
       <h1>{title}</h1>
       {summary && <p class="lede">{summary}</p>}
-      {gated && <Seal />}
+      {gated && <Seal code={code} />}
     </header>
 
-    {gated && <PasscodePrompt passcode={passcode} />}
+    {
+      gated && (
+        <div class="gate" data-gate hidden>
+          <p>This room is sealed.</p>
+          <button type="button" data-gate-open>
+            knock for the code ✎
+          </button>
+        </div>
+      )
+    }
 
     <div class="room-body" data-room hidden={gated ? true : undefined}>
       <Content />
     </div>
   </article>
+
+  {gated && <PasscodePrompt />}
 </Shell>
 
 <style>
@@ -55,14 +71,65 @@ const { title, summary, category, gated, passcode } = project.data;
   }
   .cat {
     font-size: var(--step--1);
-    color: var(--ink-70);
+    color: var(--ink-soft);
     text-transform: lowercase;
+    letter-spacing: 0.06em;
   }
   .lede {
-    color: var(--ink-70);
+    color: var(--ink-soft);
     margin-top: var(--space-sm);
+  }
+  .gate {
+    border: 1.5px dashed var(--ink-40);
+    padding: var(--space-lg);
+    text-align: center;
+    border-radius: 6px;
+  }
+  .gate button {
+    margin-top: var(--space-sm);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 7px 18px;
+    cursor: pointer;
   }
   .room-body :global(p) {
     margin-block: var(--space-sm);
   }
 </style>
+
+<script>
+  const room = document.querySelector<HTMLElement>(".room[data-gated]");
+  if (room) {
+    const slug = room.dataset.slug ?? "";
+    const code = room.dataset.code ?? "";
+    const gate = room.querySelector<HTMLElement>("[data-gate]");
+    const body = room.querySelector<HTMLElement>("[data-room]");
+    const openBtn = room.querySelector<HTMLElement>("[data-gate-open]");
+
+    function reveal() {
+      body?.removeAttribute("hidden");
+      if (gate) gate.hidden = true;
+    }
+
+    if (sessionStorage.getItem("wh:" + slug) === "1") {
+      reveal();
+    } else if (gate) {
+      gate.hidden = false;
+    }
+
+    openBtn?.addEventListener("click", () => {
+      window.dispatchEvent(
+        new CustomEvent("warehouse:gate", {
+          detail: { title: document.title, code, slug, mode: "reveal" },
+        }),
+      );
+    });
+
+    window.addEventListener("warehouse:unlocked", (e) => {
+      if ((e as CustomEvent).detail?.slug === slug) reveal();
+    });
+  }
+</script>

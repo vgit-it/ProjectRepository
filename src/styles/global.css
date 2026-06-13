@@ -22,6 +22,7 @@ html {
 
 body {
   min-height: 100svh;
+  overflow-x: hidden;
   background-color: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
@@ -77,6 +78,18 @@ select {
 }
 
 /*
+ * Ink draw-in (brief §6, §8): each built-up pass (drawn by src/lib/ink.ts) is a
+ * <g class="pass"> that fades in. Under reduced motion all passes show at once.
+ */
+.pass {
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.pass.show {
+  opacity: 1;
+}
+
+/*
  * Motion policy (brief §8): always respect prefers-reduced-motion.
  * Show the final state, run no animation. Individual draw-in/idle effects must
  * also branch on this in JS (see src/lib/motion.ts).
@@ -89,5 +102,8 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  .pass {
+    opacity: 1 !important;
   }
 }
