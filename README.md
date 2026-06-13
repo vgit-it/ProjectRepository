@@ -3,10 +3,11 @@
 A personal site to **document and store** my projects. Built with [Astro](https://astro.build),
 deployed to GitHub Pages. Design brief: `warehousebrief.md`.
 
-> **Status: Pass 1 — scaffolding only.** The architecture, design tokens, the
-> line-signature engine, the project data model, and stub pages are in place. The
-> finished hub, CSS-3D crates, motion, and the four study prototypes are migrated in
-> later passes.
+> **Status: Pass 2 — prototypes migrated.** The architecture, design tokens, the
+> line-signature engine, and the project data model are in place, and the four study
+> prototypes are migrated: the inked bento hub of CSS-3D crates, the ambient world,
+> the draw-in motion, and the passcode gate. Still to come: real crate art/posters,
+> themed project-room interiors, the signature mark, and page transitions.
 
 ## Architecture
 
@@ -20,13 +21,14 @@ src/
   lib/
     style.ts     THE single STYLE config { passes, roughness, ends } — change once,
                  the whole site updates (brief §6)
-    ink.ts       Rough.js wrapper. Every drawn line goes through here → "one hand"
+    ink.ts       Rough.js wrapper: draw(svg, recipe) builds up passes + draw-in
+    doodles.ts   the inked crate icons (game/eye/glass/phone/ai/lock)
     motion.ts    prefers-reduced-motion guard + shared helpers
   content/
     projects/    one .md per project = one crate + one room
   content.config.ts   the crate/project schema (Zod)
   layouts/Shell.astro
-  components/    Crate, InkCanvas, Seal, PasscodePrompt (Pass 1 stubs)
+  components/    Crate (3D), Seal, PasscodePrompt, Ambient
   pages/         index (hub), projects/[...slug] (room), about, 404
 ```
 
@@ -50,14 +52,17 @@ export const STYLE = { passes: 3, roughness: 1.4, ends: 4 };
 ```
 
 `passes` = buildup density, `roughness` = wobble, `ends` = endpoint overshoot. Draw
-through `src/lib/ink.ts` (`InkPen.line/rect/path`, `drawIn`) so the site and the
-sketches read as one hand. Final numbers are still TODO (brief §13).
+through `src/lib/ink.ts` — `draw(svg, recipe, { animate })` lays a recipe down over
+`passes` and (optionally) reveals it stroke-group by stroke-group. A recipe gets an
+`InkApi` (`line/rect/circle/ellipse/path`). This keeps the site and the sketches one
+hand. Final numbers are still TODO (brief §13).
 
 ## Adding a project
 
 Create `src/content/projects/<slug>.md` with frontmatter matching the schema in
-`src/content.config.ts` (title, category, size, tilt, gated, …). It appears on the
-hub and gets its room at `/projects/<slug>` automatically — no code changes.
+`src/content.config.ts` (title, category, icon, cols/rows, tilt/jitter, gated, …).
+It appears as a crate on the hub and gets its room at `/projects/<slug>`
+automatically — no code changes.
 
 ## Gating
 

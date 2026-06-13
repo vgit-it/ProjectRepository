@@ -2,72 +2,209 @@
 /**
  * PasscodePrompt.astro — the hand-drawn passcode gate (brief §9).
  *
- * Looks sketched, not a system box. Correct code reveals the room. Pass 1 stub:
- * a plain accessible form with a client-side compare against the per-project
- * code. This is a CASUAL lock only — the code ships in the page, so it keeps
- * randoms out, it is not real security. The ink-drawn box and seal-unravel
- * reward come with the prototype migration.
+ * A singleton modal: drop one <PasscodePrompt /> on a page, then raise it with a
+ * `warehouse:gate` CustomEvent { code, slug, mode, href, title }.
+ *   mode "navigate" → on the right code, go to href (used from hub crates)
+ *   mode "reveal"   → on the right code, fire `warehouse:unlocked` { slug } and
+ *                     close (used inside a gated room to show its body)
+ *
+ * ⚠️ Casual lock only: the code lives in the page, so this keeps randoms out, it
+ * is NOT security. Truly private projects need a real backend (brief §9).
  */
-interface Props {
-  /** per-project casual passcode (client-side only — not secret) */
-  passcode?: string;
-}
-const { passcode = "" } = Astro.props;
 ---
 
-<form class="passcode" data-passcode={passcode}>
-  <label class="display" for="pc">enter passcode</label>
-  <input id="pc" name="pc" type="password" autocomplete="off" inputmode="text" />
-  <button type="submit">open</button>
-  <p class="msg" data-msg aria-live="polite"></p>
-</form>
+<div
+  class="scrim"
+  id="gate-scrim"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="gate-title"
+  hidden
+>
+  <div class="pbox" id="gate-box">
+    <svg class="edge" aria-hidden="true"></svg>
+    <h3 id="gate-title">Knock knock.</h3>
+    <p id="gate-sub">This crate's sealed. Got the code?</p>
+    <div class="prow">
+      <input
+        id="gate-code"
+        type="text"
+        placeholder="••••"
+        autocomplete="off"
+        aria-label="passcode"
+      />
+      <button id="gate-go" type="button">Open</button>
+    </div>
+    <p class="okmsg" id="gate-ok" aria-live="polite">✦ unsealed —</p>
+  </div>
+</div>
 
 <style>
-  .passcode {
-    display: grid;
-    gap: var(--space-sm);
-    max-width: 22rem;
-    padding: var(--space-lg);
-    border: 1.5px solid var(--ink);
-    border-radius: 6px;
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(25, 21, 18, 0.34);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
   }
-  .passcode label {
-    font-size: var(--step-1);
+  .scrim[hidden] {
+    display: none;
   }
-  .passcode input,
-  .passcode button {
-    border: 1.5px solid var(--ink);
+  .pbox {
+    position: relative;
     background: var(--paper);
-    border-radius: 4px;
-    padding: var(--space-xs) var(--space-sm);
+    max-width: 330px;
+    width: 100%;
+    padding: 26px 24px 22px;
+    transform: rotate(-1deg);
   }
-  .passcode button {
-    cursor: pointer;
+  .pbox .edge {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    color: var(--ink);
+    pointer-events: none;
+  }
+  .pbox h3 {
+    position: relative;
     font-family: var(--font-display);
-    font-size: var(--step-1);
+    margin: 0 0 4px;
+    font-size: 24px;
   }
-  .msg {
-    min-height: 1.4em;
-    font-size: var(--step--1);
-    color: var(--ink-70);
+  .pbox p {
+    position: relative;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+  }
+  .prow {
+    position: relative;
+    display: flex;
+    gap: 8px;
+  }
+  .pbox input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--ink);
+    font-family: var(--font-display);
+    font-size: 20px;
+    padding: 6px 2px;
+    color: var(--ink);
+    outline: none;
+  }
+  .pbox button {
+    font-family: var(--font-display);
+    font-size: 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .okmsg {
+    position: relative;
+    font-family: var(--font-display);
+    color: var(--accent);
+    font-size: 16px;
+    margin: 10px 0 0;
+    display: none;
+  }
+  .okmsg.show {
+    display: block;
+  }
+  .pbox.shake {
+    animation: shake 0.35s;
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: rotate(-1deg) translateX(0);
+    }
+    25% {
+      transform: translateX(-7px);
+    }
+    75% {
+      transform: translateX(7px);
+    }
   }
 </style>
 
 <script>
-  document.querySelectorAll<HTMLFormElement>(".passcode").forEach((form) => {
-    const input = form.querySelector<HTMLInputElement>("#pc");
-    const msg = form.querySelector<HTMLElement>("[data-msg]");
-    const room = document.querySelector<HTMLElement>("[data-room]");
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const code = form.dataset.passcode ?? "";
-      if (input && input.value === code) {
-        if (msg) msg.textContent = "unsealing…";
-        form.hidden = true;
-        room?.removeAttribute("hidden");
-      } else if (msg) {
-        msg.textContent = "not quite — try again";
+  import { draw, size } from "@lib/ink";
+
+  interface GateDetail {
+    code?: string;
+    slug?: string;
+    href?: string;
+    title?: string;
+    mode?: "navigate" | "reveal";
+  }
+
+  const scrim = document.getElementById("gate-scrim");
+  const box = document.getElementById("gate-box");
+  const edge = box?.querySelector<SVGSVGElement>(".edge");
+  const input = document.getElementById("gate-code") as HTMLInputElement | null;
+  const go = document.getElementById("gate-go");
+  const ok = document.getElementById("gate-ok");
+  const sub = document.getElementById("gate-sub");
+
+  let current: GateDetail = {};
+
+  function open(detail: GateDetail) {
+    if (!scrim || !box || !input) return;
+    current = detail;
+    ok?.classList.remove("show");
+    input.value = "";
+    if (sub && detail.title) sub.textContent = `“${detail.title}” is sealed. Got the code?`;
+    scrim.hidden = false;
+    if (edge) {
+      size(edge, box.clientWidth, box.clientHeight);
+      draw(edge, (k) => k.rect(3, 3, box.clientWidth - 6, box.clientHeight - 6), { animate: true });
+    }
+    setTimeout(() => input.focus(), 60);
+  }
+
+  function close() {
+    if (scrim) scrim.hidden = true;
+  }
+
+  function tryOpen() {
+    if (!input) return;
+    if (input.value.trim() === (current.code ?? "")) {
+      if (current.slug) sessionStorage.setItem("wh:" + current.slug, "1");
+      ok?.classList.add("show");
+      if (current.mode === "reveal") {
+        window.dispatchEvent(
+          new CustomEvent("warehouse:unlocked", { detail: { slug: current.slug } }),
+        );
+        setTimeout(close, 350);
+      } else if (current.href) {
+        setTimeout(() => (window.location.href = current.href as string), 350);
       }
-    });
+    } else if (box) {
+      box.classList.remove("shake");
+      void box.offsetWidth;
+      box.classList.add("shake");
+    }
+  }
+
+  window.addEventListener("warehouse:gate", (e) =>
+    open((e as CustomEvent<GateDetail>).detail ?? {}),
+  );
+  go?.addEventListener("click", tryOpen);
+  input?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryOpen();
+  });
+  scrim?.addEventListener("click", (e) => {
+    if (e.target === scrim) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && scrim && !scrim.hidden) close();
   });
 </script>

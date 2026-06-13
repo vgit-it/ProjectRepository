@@ -7,7 +7,11 @@
 :root {
   /* ---- color ---- */
   --paper: #ece6d6; /* off-white background */
+  --paper-2: #e4ddcc; /* slightly deeper paper (vignette / lid) */
+  --crate: #efe9da; /* crate cardboard face */
+  --crate-2: #e7e0cf; /* crate face in shadow (sides) */
   --ink: #191512; /* near-black foreground */
+  --ink-soft: #4a443c; /* muted ink for secondary text */
   --accent: #b23a2e; /* red — ONLY for the seal/gated stamp */
 
   /* derived ink tints (use sparingly; still "ink") */

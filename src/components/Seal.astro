@@ -1,27 +1,43 @@
 ---
 /**
  * Seal.astro — the sealed/gated stamp (brief §5, §7, §9).
- *
- * The ONLY place the accent red is allowed. Marks a gated crate as sealed but
- * still visible (curiosity, not a wall). Pass 1 stub: a static stamp glyph; the
- * ink-drawn tape + the seal-unravel reward animation arrive later.
+ * The ONLY place the accent red appears. The rough rings are ink-drawn (red) by
+ * the crate orchestrator (it finds [data-seal]); the label text is static.
  */
+interface Props {
+  /** small code shown under the SEALED word, e.g. the vault number */
+  code?: string;
+}
+const { code = "" } = Astro.props;
 ---
 
-<span class="seal" role="img" aria-label="sealed — passcode required">SEALED</span>
+<svg class="seal" data-seal viewBox="0 0 60 60" aria-label="sealed — passcode required" role="img">
+  <text class="txt" x="30" y="27" text-anchor="middle" font-size="9">SEALED</text>
+  {
+    code && (
+      <text class="txt" x="30" y="41" text-anchor="middle" font-size="14">
+        {code}
+      </text>
+    )
+  }
+</svg>
 
 <style>
   .seal {
     position: absolute;
-    top: var(--space-xs);
-    right: var(--space-xs);
-    font-family: var(--font-display);
-    font-size: var(--step--1);
-    letter-spacing: 0.08em;
-    padding: 0.15em 0.5em;
+    top: -14px;
+    right: -10px;
+    width: 58px;
+    height: 58px;
+    transform: rotate(11deg) translateZ(60px);
+    z-index: 6;
     color: var(--accent);
-    border: 1.5px solid var(--accent);
-    border-radius: 3px;
-    transform: rotate(-8deg);
+    overflow: visible;
+    pointer-events: none;
+  }
+  .seal .txt {
+    fill: var(--accent);
+    font-family: var(--font-display);
+    font-weight: 700;
   }
 </style>

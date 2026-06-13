@@ -19,22 +19,23 @@ const projects = defineCollection({
 
     /** filter tag (brief §3). "All" is the implicit default view, not a value. */
     category: z.enum(["Games", "Sketch", "UX", "AI"]),
+    /** small label under the title, e.g. "game · prototype" (defaults to category) */
+    label: z.string().optional(),
+    /** doodle icon key on the crate front (src/lib/doodles.ts) */
+    icon: z.enum(["game", "eye", "glass", "phone", "ai", "lock"]).optional(),
 
-    /** bento sizing token — drives how big the crate sits in the wall (brief §4) */
-    size: z.enum(["s", "m", "l", "xl"]).default("m"),
-    /** gentle CSS-3D tilt in degrees (brief §5: ~12–18 felt right) */
+    /** bento span — how many grid columns/rows the crate occupies (brief §4) */
+    cols: z.number().int().min(1).max(2).default(1),
+    rows: z.number().int().min(1).max(2).default(1),
+    /** 3D rotateY in degrees (brief §5: ~12–18 felt right) */
     tilt: z.number().min(0).max(24).default(15),
-    /** hand-pinned bento jitter in degrees (brief §4: ±a few) */
+    /** hand-pinned wall rotation in degrees (brief §4: ±a few) */
     jitter: z.number().min(-6).max(6).default(0),
     /** eye-path ordering: lower sorts earlier (top→down, left→right) */
     order: z.number().default(0),
 
-    /** crate front face — hand-drawn crate sketch (transparent PNG/SVG) */
-    frontFace: z.string().optional(),
-    /** crate side face — the taped-on project poster image */
+    /** the taped-on project poster image (side face); inked panel if omitted */
     poster: z.string().optional(),
-    /** small inked icon id for the front face (controller, eye, glasses…) */
-    icon: z.string().optional(),
 
     /**
      * Casual gating (brief §9). `gated` shows a sealed/stamped crate; the code
@@ -43,6 +44,8 @@ const projects = defineCollection({
      */
     gated: z.boolean().default(false),
     passcode: z.string().optional(),
+    /** short code on the wax seal, e.g. "07" */
+    code: z.string().optional(),
 
     /** big projects get sub-pages (Overview / Play / Process); small = single */
     hasSubpages: z.boolean().default(false),

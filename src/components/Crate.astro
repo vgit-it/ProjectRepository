@@ -2,83 +2,447 @@
 /**
  * Crate.astro — one project crate on the hub wall.
  *
- * Brief §5 "Route A": flat faces, CSS does the 3D. A crate shows front + side
- * (+ thin top lid); the side carries the project poster as a taped-on image.
- *
- * Pass 1 stub: a tilted box placeholder with the title, category, tilt/jitter
- * wired from content, and the gated state surfacing the <Seal>. The hand-drawn
- * faces, perspective faces, and hover-rotate land with the box-study migration.
+ * Brief §5 "Route A": flat faces, CSS does the 3D. The box-study geometry,
+ * parameterized (--w/--h/--d) so each crate fills its bento cell. Faces:
+ *   front = hand-inked crate sketch (border + slats) + doodle + title
+ *   right = the project poster, taped on (image if supplied, else inked panel)
+ *   top   = a thin drawn lid
+ * All linework is drawn through src/lib/ink.ts by the script below. Public crates
+ * link to their room; gated crates raise the passcode gate instead.
  */
 import Seal from "@components/Seal.astro";
 
 interface Props {
   href: string;
+  /** project id / slug, for per-project unlock state */
+  slug: string;
   title: string;
-  category: string;
-  size?: "s" | "m" | "l" | "xl";
+  /** filter key: game | sketch | ux | ai */
+  cat: string;
+  /** display label, e.g. "game · prototype" */
+  catLabel: string;
+  /** doodle key (src/lib/doodles.ts) */
+  icon?: string;
+  cols?: number;
+  rows?: number;
+  /** 3D rotateY in degrees (brief §5: ~12–18) */
   tilt?: number;
+  /** hand-pinned wall rotation in degrees (brief §4: ±a few) */
   jitter?: number;
   gated?: boolean;
+  poster?: string;
+  /** seal code shown on gated crates */
+  code?: string;
 }
 
-const { href, title, category, size = "m", tilt = 15, jitter = 0, gated = false } = Astro.props;
+const {
+  href,
+  slug,
+  title,
+  cat,
+  catLabel,
+  icon,
+  cols = 1,
+  rows = 1,
+  tilt = 15,
+  jitter = 0,
+  gated = false,
+  poster,
+  code = "",
+} = Astro.props;
 ---
 
 <a
-  class:list={["crate", `size-${size}`]}
+  class:list={["crate", `c-${cols}x${rows}`, { gated }]}
   href={gated ? "#" : href}
-  data-tilt={tilt}
-  style={`--crate-jitter: ${jitter}deg;`}
-  aria-disabled={gated ? "true" : undefined}
+  data-cat={cat}
+  data-doodle={icon}
+  data-locked={gated ? "1" : undefined}
+  data-href={href}
+  data-slug={slug}
+  data-title={title}
+  data-code={code}
+  style={`--rot:${jitter}deg;--ry:${tilt}deg;`}
+  aria-haspopup={gated ? "dialog" : undefined}
 >
-  <span class="face front">
-    <span class="cat">{category}</span>
-    <span class="title">{title}</span>
+  <span class="tape tl"></span>
+  <span class="tape tr"></span>
+  <span class="scene">
+    <span class="lift">
+      <span class="box">
+        <span class="face front">
+          <svg class="ink edge" aria-hidden="true"></svg>
+          <span class="front-content">
+            <svg class="dood" aria-hidden="true"></svg>
+            <span class="meta">
+              <span class="title">{title}</span>
+              <span class="cat">{catLabel}</span>
+            </span>
+          </span>
+        </span>
+        <span class="face right">
+          {
+            poster ? (
+              <img src={poster} alt="" loading="lazy" />
+            ) : (
+              <svg class="ink poster" aria-hidden="true" />
+            )
+          }
+        </span>
+        <span class="face top"><svg class="ink lid" aria-hidden="true"></svg></span>
+        {gated && <Seal code={code} />}
+      </span>
+    </span>
+    <span class="ground"></span>
   </span>
-  {gated && <Seal />}
 </a>
 
 <style>
   .crate {
     position: relative;
-    display: flex;
-    min-height: 160px;
-    padding: var(--space-md);
-    border: 1.5px solid var(--ink);
-    border-radius: 4px;
-    background: var(--paper);
+    display: block;
     text-decoration: none;
     color: var(--ink);
-    transform: rotate(var(--crate-jitter, 0deg));
+    transform: rotate(var(--rot, 0deg));
     transition:
-      transform var(--dur-hover) var(--ease-ink),
-      box-shadow var(--dur-hover) var(--ease-ink);
+      transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+      filter 0.3s;
   }
-  .crate:hover {
-    transform: rotate(0deg) translateY(-2px);
-    box-shadow: 4px 6px 0 var(--ink-15);
+  .crate:hover,
+  .crate:focus-visible {
+    transform: rotate(0deg);
+    filter: drop-shadow(3px 6px 0 var(--ink-15));
+    z-index: 5;
+  }
+
+  /* tape strips pinning the crate to the wall */
+  .tape {
+    position: absolute;
+    width: 62px;
+    height: 20px;
+    z-index: 4;
+    background: rgba(25, 21, 18, 0.07);
+    border-left: 1px dashed rgba(25, 21, 18, 0.18);
+    border-right: 1px dashed rgba(25, 21, 18, 0.18);
+  }
+  .tape.tl {
+    top: -9px;
+    left: 16px;
+    transform: rotate(-7deg);
+  }
+  .tape.tr {
+    top: -9px;
+    right: 16px;
+    transform: rotate(6deg);
+  }
+
+  .scene {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    perspective: 1100px;
+  }
+  .lift {
+    display: block;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .crate:hover .lift,
+  .crate:focus-visible .lift {
+    transform: translateY(-6px);
+  }
+
+  .box {
+    display: block;
+    position: relative;
+    width: var(--w, 100%);
+    height: var(--h, 100%);
+    transform-style: preserve-3d;
+    transform: rotateX(7deg) rotateY(calc(-1 * var(--ry, 15deg)));
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .crate:hover .box,
+  .crate:focus-visible .box {
+    transform: rotateX(7deg) rotateY(calc(-1 * var(--ry, 15deg) - 7deg));
+  }
+
+  .face {
+    position: absolute;
+    overflow: hidden;
+    background: var(--crate);
+  }
+  .face .ink {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    color: var(--ink);
+    z-index: 1;
   }
   .face.front {
+    width: var(--w);
+    height: var(--h);
+    left: 0;
+    top: 0;
+    overflow: visible; /* keep the overshooting ends */
+    transform: translateZ(calc(var(--d, 60px) / 2));
+  }
+  .face.right {
+    width: var(--d);
+    height: var(--h);
+    left: calc((var(--w) - var(--d)) / 2);
+    top: 0;
+    background: var(--crate-2);
+    transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+  }
+  .face.right img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.05);
+  }
+  .face.top {
+    width: var(--w);
+    height: var(--d);
+    left: 0;
+    top: calc((var(--h) - var(--d)) / 2);
+    background: var(--paper-2);
+    transform: rotateX(90deg) translateZ(calc(var(--h) / 2));
+  }
+
+  .front-content {
+    position: absolute;
+    inset: 0;
+    padding: 16px;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     justify-content: space-between;
-    width: 100%;
+    z-index: 2;
   }
-  .cat {
-    font-size: var(--step--1);
-    color: var(--ink-70);
-    text-transform: lowercase;
+  .dood {
+    height: 38px;
+    width: auto;
+    flex: none;
+    color: var(--ink);
+  }
+  .meta {
+    display: flex;
+    width: 100%;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
   }
   .title {
     font-family: var(--font-display);
-    font-size: var(--step-2);
+    font-weight: 700;
+    font-size: clamp(18px, 2.2vw, 28px);
     line-height: 1;
   }
-  /* bento sizing — final packing comes with the hub migration */
-  .size-l {
-    min-height: 220px;
+  .cat {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
   }
-  .size-xl {
-    min-height: 280px;
+
+  .ground {
+    position: absolute;
+    bottom: -12px;
+    left: 10%;
+    width: 80%;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, var(--ink-15), transparent 70%);
+    filter: blur(3px);
+    opacity: 0.7;
+    pointer-events: none;
+    transition:
+      transform 0.35s,
+      opacity 0.35s;
+  }
+  .crate:hover .ground,
+  .crate:focus-visible .ground {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+
+  .gated .face.front,
+  .gated .face.top {
+    background: repeating-linear-gradient(
+      135deg,
+      var(--crate),
+      var(--crate) 9px,
+      var(--crate-2) 9px,
+      var(--crate-2) 18px
+    );
+  }
+  .gated .cat {
+    color: var(--accent);
+  }
+
+  /* dimmed when filtered out (brief §3 tags) */
+  .crate.dim {
+    opacity: 0.16;
+    filter: grayscale(1);
+    pointer-events: none;
+    transition:
+      opacity 0.3s,
+      filter 0.3s;
+  }
+
+  /* bento spans (desktop) */
+  .c-2x2 {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .c-1x2 {
+    grid-column: span 1;
+    grid-row: span 2;
+  }
+  .c-2x1 {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+  .c-1x1 {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  /* mobile (brief §10): calmer near-stack, reduced tilt */
+  @media (max-width: 720px) {
+    .crate {
+      --rot: 0deg !important;
+      --ry: 8deg !important;
+    }
+    .c-2x2 {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+    .c-1x2,
+    .c-2x1,
+    .c-1x1 {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+    .c-2x1 {
+      grid-column: span 2;
+    }
+    .tape {
+      display: none;
+    }
   }
 </style>
+
+<script>
+  import { draw, size, type InkApi } from "@lib/ink";
+  import { DOODLES, DOODLE_BOX } from "@lib/doodles";
+
+  const ACCENT = "#B23A2E"; // --accent; the only red, for the seal
+
+  function depthFor(w: number, h: number): number {
+    return Math.max(34, Math.min(72, Math.round(Math.min(w, h) * 0.4)));
+  }
+
+  function drawCrate(cr: HTMLElement, animate: boolean) {
+    const box = cr.querySelector<HTMLElement>(".box");
+    if (!box) return;
+    const w = cr.clientWidth;
+    const h = cr.clientHeight;
+    const d = depthFor(w, h);
+    box.style.setProperty("--w", w + "px");
+    box.style.setProperty("--h", h + "px");
+    box.style.setProperty("--d", d + "px");
+
+    const front = cr.querySelector<SVGSVGElement>(".face.front .edge");
+    if (front) {
+      size(front, w, h);
+      draw(
+        front,
+        (k: InkApi) => {
+          k.rect(4, 4, w - 8, h - 8);
+          k.line(6, h * 0.3, w - 6, h * 0.3);
+          k.line(6, h * 0.7, w - 6, h * 0.7);
+        },
+        { animate },
+      );
+    }
+
+    const dood = cr.querySelector<SVGSVGElement>(".dood");
+    const key = cr.dataset.doodle;
+    if (dood && key && DOODLES[key]) {
+      const [bw, bh] = DOODLE_BOX[key] ?? [48, 40];
+      size(dood, bw, bh);
+      draw(dood, DOODLES[key], { animate });
+    }
+
+    const poster = cr.querySelector<SVGSVGElement>(".face.right .poster");
+    if (poster) {
+      size(poster, d, h);
+      draw(poster, (k: InkApi) => {
+        k.rect(3, 3, d - 6, h - 6);
+        k.line(3, 3, d - 3, h - 3);
+      });
+    }
+
+    const lid = cr.querySelector<SVGSVGElement>(".face.top .lid");
+    if (lid) {
+      size(lid, w, d);
+      draw(lid, (k: InkApi) => {
+        k.rect(3, 3, w - 6, d - 6);
+        k.line(w / 2, 3, w / 2, d - 3);
+      });
+    }
+
+    const seal = cr.querySelector<SVGSVGElement>("[data-seal]");
+    if (seal) {
+      draw(
+        seal,
+        (k: InkApi) => {
+          k.circle(30, 30, 52);
+          k.circle(30, 30, 42);
+        },
+        { color: ACCENT },
+      );
+    }
+  }
+
+  const crates = [...document.querySelectorAll<HTMLElement>(".crate")];
+
+  function drawAll(animate: boolean) {
+    crates.forEach((cr) => drawCrate(cr, animate));
+  }
+
+  // gated crates raise the passcode gate instead of navigating
+  crates.forEach((cr) => {
+    if (cr.dataset.locked === "1") {
+      cr.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("warehouse:gate", {
+            detail: {
+              title: cr.dataset.title,
+              code: cr.dataset.code,
+              href: cr.dataset.href,
+              slug: cr.dataset.slug,
+              mode: "navigate",
+            },
+          }),
+        );
+      });
+    }
+  });
+
+  let rt: number;
+  window.addEventListener("resize", () => {
+    clearTimeout(rt);
+    rt = window.setTimeout(() => drawAll(false), 160);
+  });
+  window.addEventListener("load", () => drawAll(true));
+  // fonts can shift layout after load — redraw faces to fit (no re-animation)
+  document.fonts?.ready.then(() => drawAll(false));
+</script>

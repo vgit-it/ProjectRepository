@@ -5,9 +5,6 @@
  * Carries the site's constant signature around every page: <head>, the mark
  * (= home, always present), a back control, and where page transitions will
  * live. Each project "room" themes its interior freely inside this shell.
- *
- * Stub for Pass 1: structure + tokens only. The drawn nav, the line-wipe page
- * transition, and ambient details arrive with the prototype migration.
  */
 import "@styles/global.css";
 
@@ -46,14 +43,26 @@ const home = base.endsWith("/") ? base : base + "/";
     />
   </head>
   <body>
-    {/* The mark — home, always present (brief §3 navigation). Stub glyph. */}
+    {/* The mark — home, always present (brief §3 navigation). */}
     <header class="shell-mark">
-      <a href={home} aria-label="The Warehouse — home" class="mark">W</a>
+      <a href={home} class="mark" aria-label="The Warehouse — home">
+        <svg class="glyph" viewBox="0 0 48 48" aria-hidden="true">
+          <g stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round">
+            <path d="M10 38 L10 10 L24 24 L38 10 L38 38"></path>
+          </g>
+        </svg>
+        <span class="mark-words">
+          <span class="name">[ your mark ]</span>
+          <span class="sub">the warehouse</span>
+        </span>
+      </a>
       {
-        back && (
+        back ? (
           <a href={home} class="back">
-            &larr; back
+            ← back
           </a>
+        ) : (
+          <span class="hi">say hi ✎</span>
         )
       }
     </header>
@@ -68,35 +77,59 @@ const home = base.endsWith("/") ? base : base + "/";
 
     <style>
       .shell-mark {
+        position: relative;
+        z-index: 2;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        padding: var(--space-md) var(--space-lg);
+        gap: 18px;
+        max-width: 1180px;
+        margin-inline: auto;
+        padding: var(--space-lg) var(--space-md) 0;
       }
       .mark {
-        font-family: var(--font-display);
-        font-size: var(--step-2);
-        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
         text-decoration: none;
-        border: 1.5px solid var(--ink);
-        border-radius: 6px;
-        width: 2.2em;
-        height: 2.2em;
-        display: grid;
-        place-items: center;
-        line-height: 1;
+        color: var(--ink);
       }
-      .back {
+      .mark .glyph {
+        width: 46px;
+        height: 46px;
+      }
+      .mark .name {
+        display: block;
         font-family: var(--font-display);
-        font-size: var(--step-1);
+        font-size: 30px;
+        line-height: 0.9;
+        font-weight: 700;
+      }
+      .mark .sub {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin-top: 3px;
+      }
+      .back,
+      .hi {
+        font-family: var(--font-display);
+        font-size: 20px;
         text-decoration: none;
+        color: var(--ink-soft);
       }
       main {
-        padding: 0 var(--space-lg) var(--space-xl);
-        max-width: 1200px;
+        position: relative;
+        z-index: 2;
+        padding: 0 var(--space-md) var(--space-xl);
+        max-width: 1180px;
         margin-inline: auto;
       }
       .shell-foot {
+        position: relative;
+        z-index: 2;
         padding: var(--space-lg);
         color: var(--ink-40);
         text-align: center;
