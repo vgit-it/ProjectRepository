@@ -1,0 +1,106 @@
+---
+/**
+ * Shell.astro — the constant shell (brief §2).
+ *
+ * Carries the site's constant signature around every page: <head>, the mark
+ * (= home, always present), a back control, and where page transitions will
+ * live. Each project "room" themes its interior freely inside this shell.
+ *
+ * Stub for Pass 1: structure + tokens only. The drawn nav, the line-wipe page
+ * transition, and ambient details arrive with the prototype migration.
+ */
+import "@styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** show the back control (rooms yes, hub no) */
+  back?: boolean;
+}
+
+const {
+  title = "The Warehouse",
+  description = "A personal site to document and store my projects.",
+  back = false,
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const home = base.endsWith("/") ? base : base + "/";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" href={`${home}favicon.svg`} />
+
+    {/* TODO: self-host fonts under /public/fonts (brief §7). Linked for now. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    {/* The mark — home, always present (brief §3 navigation). Stub glyph. */}
+    <header class="shell-mark">
+      <a href={home} aria-label="The Warehouse — home" class="mark">W</a>
+      {
+        back && (
+          <a href={home} class="back">
+            &larr; back
+          </a>
+        )
+      }
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="shell-foot">
+      <small>The Warehouse · scaffolding (Pass 1)</small>
+    </footer>
+
+    <style>
+      .shell-mark {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-md) var(--space-lg);
+      }
+      .mark {
+        font-family: var(--font-display);
+        font-size: var(--step-2);
+        font-weight: 700;
+        text-decoration: none;
+        border: 1.5px solid var(--ink);
+        border-radius: 6px;
+        width: 2.2em;
+        height: 2.2em;
+        display: grid;
+        place-items: center;
+        line-height: 1;
+      }
+      .back {
+        font-family: var(--font-display);
+        font-size: var(--step-1);
+        text-decoration: none;
+      }
+      main {
+        padding: 0 var(--space-lg) var(--space-xl);
+        max-width: 1200px;
+        margin-inline: auto;
+      }
+      .shell-foot {
+        padding: var(--space-lg);
+        color: var(--ink-40);
+        text-align: center;
+      }
+    </style>
+  </body>
+</html>

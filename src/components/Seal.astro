@@ -1,0 +1,27 @@
+---
+/**
+ * Seal.astro — the sealed/gated stamp (brief §5, §7, §9).
+ *
+ * The ONLY place the accent red is allowed. Marks a gated crate as sealed but
+ * still visible (curiosity, not a wall). Pass 1 stub: a static stamp glyph; the
+ * ink-drawn tape + the seal-unravel reward animation arrive later.
+ */
+---
+
+<span class="seal" role="img" aria-label="sealed — passcode required">SEALED</span>
+
+<style>
+  .seal {
+    position: absolute;
+    top: var(--space-xs);
+    right: var(--space-xs);
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    padding: 0.15em 0.5em;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 3px;
+    transform: rotate(-8deg);
+  }
+</style>

@@ -1,0 +1,26 @@
+{
+  "name": "the-warehouse",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Warehouse — a personal site to document and store my projects.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "astro": "^6.4.6",
+    "roughjs": "^4.6.6"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "prettier": "^3.4.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^5.7.3"
+  }
+}

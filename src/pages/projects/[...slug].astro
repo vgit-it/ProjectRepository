@@ -1,0 +1,68 @@
+---
+/**
+ * projects/[...slug].astro — a project "room" (brief §2, §3).
+ *
+ * Pass 1 stub: one page per project from the collection, inside the constant
+ * Shell. Gated projects render the Seal + PasscodePrompt and keep the room body
+ * hidden until the casual code is entered. Themed interiors per project type
+ * (game / sketch / UX / AI) arrive when prototypes are migrated.
+ */
+import { getCollection, render } from "astro:content";
+import Shell from "@layouts/Shell.astro";
+import Seal from "@components/Seal.astro";
+import PasscodePrompt from "@components/PasscodePrompt.astro";
+
+export async function getStaticPaths() {
+  const projects = await getCollection("projects");
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { title, summary, category, gated, passcode } = project.data;
+---
+
+<Shell title={`${title} — The Warehouse`} description={summary} back>
+  <article class="room">
+    <header class="room-head">
+      <span class="cat">{category}</span>
+      <h1>{title}</h1>
+      {summary && <p class="lede">{summary}</p>}
+      {gated && <Seal />}
+    </header>
+
+    {gated && <PasscodePrompt passcode={passcode} />}
+
+    <div class="room-body" data-room hidden={gated ? true : undefined}>
+      <Content />
+    </div>
+  </article>
+</Shell>
+
+<style>
+  .room {
+    position: relative;
+    max-width: 70ch;
+    margin-inline: auto;
+    padding-block: var(--space-lg);
+  }
+  .room-head {
+    position: relative;
+    margin-bottom: var(--space-lg);
+  }
+  .cat {
+    font-size: var(--step--1);
+    color: var(--ink-70);
+    text-transform: lowercase;
+  }
+  .lede {
+    color: var(--ink-70);
+    margin-top: var(--space-sm);
+  }
+  .room-body :global(p) {
+    margin-block: var(--space-sm);
+  }
+</style>

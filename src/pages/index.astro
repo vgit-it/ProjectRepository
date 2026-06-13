@@ -1,0 +1,91 @@
+---
+/**
+ * index.astro — the Hub (brief §3, §4).
+ *
+ * Pass 1 stub: reads the projects collection and renders crates in a simple
+ * responsive grid with placeholder filter tags. This is NOT the final bento
+ * crate-wall, ambient world, or motion — just the data wired end to end so the
+ * hub-inked prototype can be migrated in over a working data layer.
+ */
+import { getCollection } from "astro:content";
+import Shell from "@layouts/Shell.astro";
+import Crate from "@components/Crate.astro";
+import InkCanvas from "@components/InkCanvas.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const projects = (await getCollection("projects"))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => a.data.order - b.data.order);
+
+const tags = ["All", "Games", "Sketch", "UX", "AI"] as const;
+---
+
+<Shell title="The Warehouse">
+  <section class="intro">
+    <InkCanvas width={420} height={86} shape="underline" draw>
+      <h1>The Warehouse</h1>
+    </InkCanvas>
+    <p class="lede">Projects, stored in crates. <em>(scaffolding — Pass 1)</em></p>
+  </section>
+
+  <nav class="tags" aria-label="filter projects">
+    {
+      tags.map((t) => (
+        <button class="tag" data-tag={t}>
+          {t}
+        </button>
+      ))
+    }
+  </nav>
+
+  <ul class="wall" role="list">
+    {
+      projects.map((p) => (
+        <li>
+          <Crate
+            href={`${base}/projects/${p.id}`}
+            title={p.data.title}
+            category={p.data.category}
+            size={p.data.size}
+            tilt={p.data.tilt}
+            jitter={p.data.jitter}
+            gated={p.data.gated}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</Shell>
+
+<style>
+  .intro {
+    margin-block: var(--space-lg);
+  }
+  .lede {
+    color: var(--ink-70);
+    margin-top: var(--space-sm);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-block: var(--space-lg);
+  }
+  .tag {
+    cursor: pointer;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: 999px;
+    padding: 0.25em 0.9em;
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+  }
+  .wall {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-md);
+  }
+  .wall li {
+    list-style: none;
+  }
+</style>

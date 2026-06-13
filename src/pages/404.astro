@@ -1,0 +1,27 @@
+---
+/**
+ * 404.astro — a sketchy on-brand not-found (brief §3). Pass 1 stub.
+ */
+import Shell from "@layouts/Shell.astro";
+
+const home = import.meta.env.BASE_URL;
+---
+
+<Shell title="Lost crate — The Warehouse">
+  <article class="room">
+    <h1>404</h1>
+    <p>That crate isn't on the shelf.</p>
+    <p><a href={home}>&larr; back to the warehouse</a></p>
+  </article>
+</Shell>
+
+<style>
+  .room {
+    max-width: 50ch;
+    margin: var(--space-xl) auto;
+    text-align: center;
+  }
+  .room p {
+    margin-top: var(--space-md);
+  }
+</style>

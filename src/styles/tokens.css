@@ -1,0 +1,48 @@
+/*
+ * The Warehouse — design tokens.
+ * Single source of truth for color, type, spacing, and the crate-tilt range.
+ * Visual rule (brief §7): pure black & white everywhere; the accent red is
+ * reserved SOLELY for the sealed/gated stamp.
+ */
+:root {
+  /* ---- color ---- */
+  --paper: #ece6d6; /* off-white background */
+  --ink: #191512; /* near-black foreground */
+  --accent: #b23a2e; /* red — ONLY for the seal/gated stamp */
+
+  /* derived ink tints (use sparingly; still "ink") */
+  --ink-70: rgba(25, 21, 18, 0.7);
+  --ink-40: rgba(25, 21, 18, 0.4);
+  --ink-15: rgba(25, 21, 18, 0.15);
+
+  /* ---- type ---- */
+  /* hand-lettered display for titles + my mark */
+  --font-display: "Caveat", "Kalam", ui-rounded, system-ui, sans-serif;
+  /* clean sans for body — "clean bones, raw strokes" */
+  --font-body: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  --step--1: clamp(0.83rem, 0.78rem + 0.2vw, 0.94rem);
+  --step-0: clamp(1rem, 0.93rem + 0.3vw, 1.19rem);
+  --step-1: clamp(1.2rem, 1.08rem + 0.6vw, 1.66rem);
+  --step-2: clamp(1.44rem, 1.24rem + 1vw, 2.33rem);
+  --step-3: clamp(1.73rem, 1.42rem + 1.5vw, 3.26rem);
+  --step-4: clamp(2.07rem, 1.62rem + 2.3vw, 4.56rem);
+
+  /* ---- spacing ---- */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1.25rem;
+  --space-lg: 2rem;
+  --space-xl: 3.5rem;
+
+  /* ---- crate tilt (brief §5: gentle ~12–18°) ---- */
+  --tilt-min: 12deg;
+  --tilt-max: 18deg;
+  /* hand-pinned bento jitter (brief §4: ±a few degrees) */
+  --jitter: 3deg;
+
+  /* ---- motion ---- */
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-draw: 900ms;
+  --dur-hover: 220ms;
+}

@@ -1,0 +1,84 @@
+---
+/**
+ * Crate.astro — one project crate on the hub wall.
+ *
+ * Brief §5 "Route A": flat faces, CSS does the 3D. A crate shows front + side
+ * (+ thin top lid); the side carries the project poster as a taped-on image.
+ *
+ * Pass 1 stub: a tilted box placeholder with the title, category, tilt/jitter
+ * wired from content, and the gated state surfacing the <Seal>. The hand-drawn
+ * faces, perspective faces, and hover-rotate land with the box-study migration.
+ */
+import Seal from "@components/Seal.astro";
+
+interface Props {
+  href: string;
+  title: string;
+  category: string;
+  size?: "s" | "m" | "l" | "xl";
+  tilt?: number;
+  jitter?: number;
+  gated?: boolean;
+}
+
+const { href, title, category, size = "m", tilt = 15, jitter = 0, gated = false } = Astro.props;
+---
+
+<a
+  class:list={["crate", `size-${size}`]}
+  href={gated ? "#" : href}
+  data-tilt={tilt}
+  style={`--crate-jitter: ${jitter}deg;`}
+  aria-disabled={gated ? "true" : undefined}
+>
+  <span class="face front">
+    <span class="cat">{category}</span>
+    <span class="title">{title}</span>
+  </span>
+  {gated && <Seal />}
+</a>
+
+<style>
+  .crate {
+    position: relative;
+    display: flex;
+    min-height: 160px;
+    padding: var(--space-md);
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--paper);
+    text-decoration: none;
+    color: var(--ink);
+    transform: rotate(var(--crate-jitter, 0deg));
+    transition:
+      transform var(--dur-hover) var(--ease-ink),
+      box-shadow var(--dur-hover) var(--ease-ink);
+  }
+  .crate:hover {
+    transform: rotate(0deg) translateY(-2px);
+    box-shadow: 4px 6px 0 var(--ink-15);
+  }
+  .face.front {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .cat {
+    font-size: var(--step--1);
+    color: var(--ink-70);
+    text-transform: lowercase;
+  }
+  .title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1;
+  }
+  /* bento sizing — final packing comes with the hub migration */
+  .size-l {
+    min-height: 220px;
+  }
+  .size-xl {
+    min-height: 280px;
+  }
+</style>

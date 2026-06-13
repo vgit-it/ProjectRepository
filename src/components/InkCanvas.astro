@@ -1,0 +1,68 @@
+---
+/**
+ * InkCanvas.astro — mounts the ink engine (src/lib/ink.ts) onto an element.
+ *
+ * Renders a responsive <svg> overlay and, client-side, draws a built-up
+ * multi-stroke shape through the shared InkPen so the whole site reads as one
+ * hand. Pass 1 supports a rect border and an underline — enough to verify the
+ * engine. More shapes/choreography come with the prototype migration.
+ */
+interface Props {
+  /** logical drawing size; the svg scales to its host box */
+  width?: number;
+  height?: number;
+  shape?: "rect" | "underline";
+  /** animate the strokes in on load (respects reduced motion) */
+  draw?: boolean;
+}
+
+const { width = 300, height = 120, shape = "rect", draw = false } = Astro.props;
+---
+
+<span
+  class="ink-canvas"
+  data-ink
+  data-w={width}
+  data-h={height}
+  data-shape={shape}
+  data-draw={draw ? "1" : "0"}
+>
+  <slot />
+</span>
+
+<style>
+  .ink-canvas {
+    position: relative;
+    display: inline-block;
+  }
+  .ink-canvas :global(svg) {
+    position: absolute;
+    inset: 0;
+    color: var(--ink);
+    pointer-events: none;
+    overflow: visible;
+  }
+</style>
+
+<script>
+  import { inkOn, createInkSvg, drawIn } from "@lib/ink";
+
+  function mount(host: HTMLElement) {
+    const w = Number(host.dataset.w) || host.clientWidth || 300;
+    const h = Number(host.dataset.h) || host.clientHeight || 120;
+    const svg = createInkSvg(w, h);
+    host.prepend(svg);
+
+    const pen = inkOn(svg);
+    let nodes;
+    if (host.dataset.shape === "underline") {
+      nodes = pen.line({ x: 2, y: h - 4 }, { x: w - 2, y: h - 4 });
+    } else {
+      nodes = pen.rect(3, 3, w - 6, h - 6);
+    }
+
+    if (host.dataset.draw === "1") void drawIn(nodes);
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-ink]").forEach(mount);
+</script>

@@ -1,0 +1,32 @@
+---
+/**
+ * about.astro — the About room (brief §3). Short, can become its own themed
+ * room later. Pass 1 stub.
+ */
+import Shell from "@layouts/Shell.astro";
+---
+
+<Shell title="About — The Warehouse" back>
+  <article class="room">
+    <h1>About</h1>
+    <p>
+      The Warehouse is where I store and document my projects — games, sketches, UX, and AI
+      experiments. Experience over reading; every choice serves the visit.
+    </p>
+    <p class="note">(Stub — the themed About room comes in a later pass.)</p>
+  </article>
+</Shell>
+
+<style>
+  .room {
+    max-width: 60ch;
+    margin-inline: auto;
+    padding-block: var(--space-lg);
+  }
+  .room p {
+    margin-top: var(--space-md);
+  }
+  .note {
+    color: var(--ink-40);
+  }
+</style>

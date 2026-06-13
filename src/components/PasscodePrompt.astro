@@ -1,0 +1,73 @@
+---
+/**
+ * PasscodePrompt.astro — the hand-drawn passcode gate (brief §9).
+ *
+ * Looks sketched, not a system box. Correct code reveals the room. Pass 1 stub:
+ * a plain accessible form with a client-side compare against the per-project
+ * code. This is a CASUAL lock only — the code ships in the page, so it keeps
+ * randoms out, it is not real security. The ink-drawn box and seal-unravel
+ * reward come with the prototype migration.
+ */
+interface Props {
+  /** per-project casual passcode (client-side only — not secret) */
+  passcode?: string;
+}
+const { passcode = "" } = Astro.props;
+---
+
+<form class="passcode" data-passcode={passcode}>
+  <label class="display" for="pc">enter passcode</label>
+  <input id="pc" name="pc" type="password" autocomplete="off" inputmode="text" />
+  <button type="submit">open</button>
+  <p class="msg" data-msg aria-live="polite"></p>
+</form>
+
+<style>
+  .passcode {
+    display: grid;
+    gap: var(--space-sm);
+    max-width: 22rem;
+    padding: var(--space-lg);
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+  }
+  .passcode label {
+    font-size: var(--step-1);
+  }
+  .passcode input,
+  .passcode button {
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    border-radius: 4px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .passcode button {
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .msg {
+    min-height: 1.4em;
+    font-size: var(--step--1);
+    color: var(--ink-70);
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>(".passcode").forEach((form) => {
+    const input = form.querySelector<HTMLInputElement>("#pc");
+    const msg = form.querySelector<HTMLElement>("[data-msg]");
+    const room = document.querySelector<HTMLElement>("[data-room]");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const code = form.dataset.passcode ?? "";
+      if (input && input.value === code) {
+        if (msg) msg.textContent = "unsealing…";
+        form.hidden = true;
+        room?.removeAttribute("hidden");
+      } else if (msg) {
+        msg.textContent = "not quite — try again";
+      }
+    });
+  });
+</script>
