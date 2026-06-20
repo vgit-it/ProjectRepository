@@ -8,10 +8,10 @@ export const GOAL_Y_MIN = PITCH_HEIGHT / 2 - GOAL_WIDTH / 2;
 export const GOAL_Y_MAX = PITCH_HEIGHT / 2 + GOAL_WIDTH / 2;
 
 export const PLAYER_RADIUS = 1.6;
-export const BALL_RADIUS = 0.5;
+export const BALL_RADIUS = 0.9;
 
-export const PLAYER_BASE_SPEED = 6.5; // m/s, jogging/chasing pace
-export const PLAYER_ACCEL = 25; // m/s^2, how fast velocity tracks the desired seek vector
+export const PLAYER_BASE_SPEED = 8.5; // m/s, jogging/chasing pace
+export const PLAYER_ACCEL = 34; // m/s^2, how fast velocity tracks the desired seek vector
 
 export const PRESS_RADIUS = 10;
 export const DUEL_RADIUS = 1.6;
@@ -20,11 +20,11 @@ export const DUEL_JITTER = 0.5;
 export const PICKUP_RADIUS = 1.1;
 export const PICKUP_BLOCK_MS = 400;
 
-export const AI_DECISION_INTERVAL_MS = 300;
+export const AI_DECISION_INTERVAL_MS = 200;
 
-export const SHOT_SPEED = 28;
-export const PASS_SPEED = 18;
-export const BALL_DRAG_PER_SEC = 0.55; // exponential velocity decay coefficient
+export const SHOT_SPEED = 36;
+export const PASS_SPEED = 24;
+export const BALL_DRAG_PER_SEC = 0.45; // exponential velocity decay coefficient
 export const BALL_BOUNDARY_DAMPING = 0.55;
 
 export const DEAD_BALL_FREEZE_MS = 700;
