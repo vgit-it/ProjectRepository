@@ -1,0 +1,46 @@
+---
+/**
+ * audience-interference.astro — bare-canvas route for the Audience Interference
+ * game sim (M1 checkpoint: AI match only, no player input/HUD yet).
+ *
+ * DEV PALETTE EXCEPTION (temporary, scoped to this page + src/games/audience-interference/
+ * only): CLAUDE.md rule 4 reserves color for the Seal stamp and keeps everything else
+ * B&W. This game's render/* modules use real gameplay colors (team kits, pitch green,
+ * etc.) deliberately, for build/iteration clarity — confirmed with the project owner.
+ * This page stays unlisted from the public hub (no src/content/projects/ entry) until
+ * a later monochrome reskin pass makes it presentable site-wide.
+ *
+ * Full-bleed canvas: Shell.astro's <main> caps width at 1180px (by design, rule 1 — not
+ * edited here). `.game-breakout` is a page-scoped escape, not a Shell change.
+ */
+import Shell from "@layouts/Shell.astro";
+---
+
+<Shell title="Audience Interference — The Warehouse" back>
+  <div class="game-breakout">
+    <canvas id="match-canvas"></canvas>
+  </div>
+</Shell>
+
+<style>
+  .game-breakout {
+    margin-inline: calc(50% - 50vw);
+    width: 100vw;
+    padding-block: var(--space-md);
+    display: flex;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 116 / 80;
+  }
+</style>
+
+<script>
+  import { boot } from "@games/audience-interference";
+
+  const canvas = document.querySelector<HTMLCanvasElement>("#match-canvas");
+  if (canvas) boot(canvas);
+</script>

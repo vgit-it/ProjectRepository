@@ -8,7 +8,8 @@
       "@lib/*": ["src/lib/*"],
       "@components/*": ["src/components/*"],
       "@layouts/*": ["src/layouts/*"],
-      "@styles/*": ["src/styles/*"]
+      "@styles/*": ["src/styles/*"],
+      "@games/*": ["src/games/*"]
     }
   }
 }
