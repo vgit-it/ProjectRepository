@@ -56,8 +56,11 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
     renderer.resize(rect.width, rect.height);
   };
   resize();
+  // Observe the stage (the canvas's sized parent) rather than the canvas: the
+  // canvas now flexes via CSS, so watching the element that actually drives the
+  // box keeps the backing buffer in sync across the fullscreen maximize/restore.
   const resizeObserver = new ResizeObserver(resize);
-  resizeObserver.observe(canvas);
+  resizeObserver.observe(canvas.parentElement ?? canvas);
 
   // focus the camera between the spectator and the pitch they're facing
   const focusTarget = (): Vec2 => {
