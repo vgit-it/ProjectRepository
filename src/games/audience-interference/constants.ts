@@ -8,7 +8,7 @@ export const GOAL_Y_MIN = PITCH_HEIGHT / 2 - GOAL_WIDTH / 2;
 export const GOAL_Y_MAX = PITCH_HEIGHT / 2 + GOAL_WIDTH / 2;
 
 export const PLAYER_RADIUS = 1.6;
-export const BALL_RADIUS = 0.85;
+export const BALL_RADIUS = 1.4;
 
 export const PLAYER_BASE_SPEED = 6.5; // m/s, jogging/chasing pace
 export const PLAYER_ACCEL = 25; // m/s^2, how fast velocity tracks the desired seek vector
@@ -40,13 +40,18 @@ export const HALFTIME_BREAK_MS = 8000;
 export const STAND_BAND_M = 5.25;
 /** How far outside the touchlines the spectator can roam (kept inside the stand band). */
 export const STAND_INSET_M = 1.125;
-export const SPECTATOR_SPEED = 12; // m/s walking along the stands
-export const SPECTATOR_ACCEL = 40;
+
+/** Discrete crowd "perches" the player hops between, laid out as a ring in the
+ * stand band: 4 corners + this many along each horizontal / vertical side. */
+export const PERCH_PER_HORIZONTAL = 4;
+export const PERCH_PER_VERTICAL = 3;
+/** Auto-repeat delay (ms) between perch hops while a direction is held. */
+export const PERCH_STEP_MS = 190;
 
 // ---------- camera (M2) ----------
 
-/** Vertical slice of the world (meters) the zoomed camera shows; ~half the pitch. */
-export const CAMERA_VISIBLE_HEIGHT_M = 28.5;
+/** Vertical slice of the world (meters) the zoomed camera shows; most of the pitch. */
+export const CAMERA_VISIBLE_HEIGHT_M = 40;
 /** Perspective strength: 0 = flat zoom, higher = more foreshortening up the screen. */
 export const CAMERA_TILT = 0.55;
 /** Virtual camera depth (meters) for the perspective denominator. */
@@ -63,6 +68,8 @@ export const THROW_CHARGE_SEC = 0.9;
 /** Flight time scales with distance; clamps keep arcs readable. */
 export const THROW_MIN_FLIGHT_MS = 350;
 export const THROW_MAX_FLIGHT_MS = 1100;
+/** How fast the joystick drags the landing marker across the pitch (m/s). */
+export const AIM_MARKER_SPEED = 24;
 
 // Off-ball "home slot" formation: depth (0 = own goal line, 1 = opponent goal line)
 // and lane fraction (0..1 across the pitch height), plus how strongly each role

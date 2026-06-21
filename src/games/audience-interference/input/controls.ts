@@ -61,15 +61,15 @@ export class InputController {
 
   // ---------- aim / move resolution ----------
 
+  /** Analog vector (magnitude <= 1) that drags the landing marker while aiming. */
   private computeAim(): Vec2 {
     if (this.mouseAimHeld) {
+      // desktop: push the marker toward the cursor, faster the farther it is
       const s = this.cfg.getSpectatorScreen();
-      const dx = this.mouseCss.x - s.x;
-      const dy = this.mouseCss.y - s.y;
-      return norm({ x: dx, y: dy });
+      return clampLen({ x: (this.mouseCss.x - s.x) / 120, y: (this.mouseCss.y - s.y) / 120 }, 1);
     }
-    // touch: joystick steers the aim
-    return norm(this.joyVec);
+    // touch: joystick directly drives the marker (already magnitude <= 1)
+    return this.joyVec;
   }
 
   private combinedMove(): Vec2 {
@@ -234,7 +234,8 @@ export class InputController {
   }
 }
 
-function norm(v: Vec2): Vec2 {
+/** Clamp a vector's magnitude to at most `max`, leaving shorter vectors untouched. */
+function clampLen(v: Vec2, max: number): Vec2 {
   const len = Math.hypot(v.x, v.y);
-  return len > 1e-4 ? { x: v.x / len, y: v.y / len } : { x: 0, y: 0 };
+  return len > max ? { x: (v.x / len) * max, y: (v.y / len) * max } : v;
 }

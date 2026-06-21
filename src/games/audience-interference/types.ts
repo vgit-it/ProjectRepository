@@ -78,17 +78,20 @@ export interface SeatSection {
 
 export interface Spectator {
   pos: Vec2;
-  vel: Vec2;
   facing: number;
   ducking: boolean;
   currentSection: string;
+  /** index into the perch ring (buildPerches); the player hops between perches */
+  perchIndex: number;
+  /** sim time the next perch hop is allowed (auto-repeat throttle) */
+  nextStepAtMs: number;
   heldItem: ItemId;
   itemCooldowns: Record<ItemId, number>;
   /** true while THROW is held: aiming/charging a throw */
   aiming: boolean;
-  /** unit aim direction in world space (pitch plane) */
-  aimDir: Vec2;
-  /** 0..1 charge built up while aiming; sets throw power + accuracy */
+  /** world-space landing point the joystick drags around while aiming */
+  aimTarget: Vec2;
+  /** 0..1 charge built up while aiming; drives the marker pulse */
   charge: number;
 }
 
