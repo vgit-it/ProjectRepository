@@ -15,15 +15,16 @@ export class Renderer {
     this.ctx = ctx;
   }
 
-  /** Resizes the backing buffer to match the CSS box (in device pixels). */
+  /** Resizes the device-pixel backing buffer to match the CSS box. The canvas's
+   * displayed size is left to CSS (width/height: 100%) so it flexes with its
+   * .game-stage parent — including the maximize/restore transition — rather than
+   * being pinned to stale inline pixels. */
   resize(widthPx: number, heightPx: number): void {
     const dpr = window.devicePixelRatio || 1;
     this.widthPx = Math.max(1, Math.round(widthPx * dpr));
     this.heightPx = Math.max(1, Math.round(heightPx * dpr));
     this.canvas.width = this.widthPx;
     this.canvas.height = this.heightPx;
-    this.canvas.style.width = `${widthPx}px`;
-    this.canvas.style.height = `${heightPx}px`;
     this.camera.resize(this.widthPx, this.heightPx);
   }
 
