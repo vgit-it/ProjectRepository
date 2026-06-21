@@ -9,7 +9,17 @@ const MAX_COME_OFF = 8;
 
 /** Scripted GK behavior: clamp to the goal line on ball-y, step off the line only
  * when the ball is close and no defender is between it and goal. */
-export function updateGoalkeeper(gk: GoalkeeperPlayer, ball: Ball, teammates: MatchPlayer[]): void {
+export function updateGoalkeeper(
+  gk: GoalkeeperPlayer,
+  ball: Ball,
+  teammates: MatchPlayer[],
+  nowMs: number,
+): void {
+  // Blinded by a flare/scarf: freeze on the spot, stop tracking the ball.
+  if (nowMs < gk.blindedUntilMs) {
+    gk.moveTarget = { ...gk.pos };
+    return;
+  }
   const lineX = gk.lineSegment.a.x;
   const yMin = Math.min(gk.lineSegment.a.y, gk.lineSegment.b.y);
   const yMax = Math.max(gk.lineSegment.a.y, gk.lineSegment.b.y);

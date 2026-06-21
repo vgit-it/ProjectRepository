@@ -4,14 +4,21 @@ import type { Renderer } from "./Renderer";
 
 const BALL_FILL = "#f5f5f0";
 const BALL_OUTLINE = "#222222";
+const SHADOW_COLOR = "rgba(0, 0, 0, 0.28)";
 
 export function drawBall(renderer: Renderer, ball: Ball): void {
   const { ctx } = renderer;
-  const p = renderer.worldToScreen(ball.pos);
-  const radiusPx = Math.max(1.5, renderer.metersToPixels(BALL_RADIUS));
+  const sp = renderer.project(ball.pos);
+  if (!renderer.inView(sp)) return;
+  const radiusPx = Math.max(1.5, BALL_RADIUS * sp.scale);
 
   ctx.beginPath();
-  ctx.arc(p.x, p.y, radiusPx, 0, Math.PI * 2);
+  ctx.ellipse(sp.x, sp.y + radiusPx * 0.4, radiusPx * 1.1, radiusPx * 0.45, 0, 0, Math.PI * 2);
+  ctx.fillStyle = SHADOW_COLOR;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(sp.x, sp.y, radiusPx, 0, Math.PI * 2);
   ctx.fillStyle = BALL_FILL;
   ctx.fill();
   ctx.lineWidth = Math.max(1, radiusPx * 0.25);

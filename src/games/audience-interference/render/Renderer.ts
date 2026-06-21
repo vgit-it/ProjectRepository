@@ -1,16 +1,13 @@
-import { PITCH_HEIGHT, PITCH_WIDTH } from "../constants";
 import type { Vec2 } from "../types";
+import { Camera, type Projected } from "./camera";
 
-// Padding (world meters) kept around the pitch so the view doesn't crop right at the
-// touchline; this margin is where M2 will place the stands.
-const WORLD_MARGIN_M = 8;
-
-/** Owns the canvas, the world(meters)->screen(px) transform, and frame clearing. */
+/** Owns the canvas + device-pixel sizing and delegates the world->screen transform
+ * to a zoomed, player-following perspective Camera. */
 export class Renderer {
   readonly ctx: CanvasRenderingContext2D;
-  private scale = 1;
-  private offsetX = 0;
-  private offsetY = 0;
+  readonly camera = new Camera();
+  private widthPx = 1;
+  private heightPx = 1;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
@@ -18,34 +15,40 @@ export class Renderer {
     this.ctx = ctx;
   }
 
-  /** Resizes the backing buffer to match the CSS box (in device pixels) and recomputes the transform. */
+  /** Resizes the backing buffer to match the CSS box (in device pixels). */
   resize(widthPx: number, heightPx: number): void {
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.max(1, Math.round(widthPx * dpr));
-    this.canvas.height = Math.max(1, Math.round(heightPx * dpr));
+    this.widthPx = Math.max(1, Math.round(widthPx * dpr));
+    this.heightPx = Math.max(1, Math.round(heightPx * dpr));
+    this.canvas.width = this.widthPx;
+    this.canvas.height = this.heightPx;
     this.canvas.style.width = `${widthPx}px`;
     this.canvas.style.height = `${heightPx}px`;
+    this.camera.resize(this.widthPx, this.heightPx);
+  }
 
-    const worldWidth = PITCH_WIDTH + WORLD_MARGIN_M * 2;
-    const worldHeight = PITCH_HEIGHT + WORLD_MARGIN_M * 2;
-    this.scale = Math.min(this.canvas.width / worldWidth, this.canvas.height / worldHeight);
+  get width(): number {
+    return this.widthPx;
+  }
+  get height(): number {
+    return this.heightPx;
+  }
 
-    const padX = (this.canvas.width - worldWidth * this.scale) / 2;
-    const padY = (this.canvas.height - worldHeight * this.scale) / 2;
-    this.offsetX = padX + WORLD_MARGIN_M * this.scale;
-    this.offsetY = padY + WORLD_MARGIN_M * this.scale;
+  project(p: Vec2): Projected {
+    return this.camera.project(p);
+  }
+
+  inView(sp: Projected, marginPx?: number): boolean {
+    return this.camera.inView(sp, marginPx);
   }
 
   worldToScreen(p: Vec2): Vec2 {
-    return { x: p.x * this.scale + this.offsetX, y: p.y * this.scale + this.offsetY };
-  }
-
-  metersToPixels(m: number): number {
-    return m * this.scale;
+    const sp = this.camera.project(p);
+    return { x: sp.x, y: sp.y };
   }
 
   clear(): void {
     this.ctx.fillStyle = "#111317";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, this.widthPx, this.heightPx);
   }
 }

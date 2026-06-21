@@ -1,10 +1,36 @@
+import { CAMERA_LOOK_AHEAD_M } from "./constants";
+import { InputController } from "./input/controls";
 import { GameLoop } from "./loop/GameLoop";
+import { drawAim } from "./render/drawAim";
 import { drawBall } from "./render/drawBall";
 import { drawPitch } from "./render/drawPitch";
 import { drawPlayers } from "./render/drawPlayers";
+import { drawProjectiles } from "./render/drawProjectiles";
+import { drawSpectator } from "./render/drawSpectator";
+import { drawStands } from "./render/drawStands";
 import { Renderer } from "./render/Renderer";
-import { MatchSim } from "./sim/MatchSim";
-import type { MatchState } from "./types";
+import { ITEM_DEFS, ITEM_ORDER } from "./sim/items";
+import { WorldSim } from "./sim/WorldSim";
+import type { GameOutcome, ItemId, Team, Vec2 } from "./types";
+
+export interface HudState {
+  home: number;
+  away: number;
+  phase: string;
+  clock: string;
+  outcome: GameOutcome;
+  backedTeam: Team;
+  selectedItem: ItemId;
+  /** per-item readiness, 0 (just thrown) .. 1 (ready) */
+  cooldowns: Record<ItemId, number>;
+}
+
+export interface BootOptions {
+  /** container to mount the on-screen joystick / THROW / item buttons into */
+  controlsRoot?: HTMLElement;
+  /** called every frame with the current HUD snapshot */
+  onHud?: (hud: HudState) => void;
+}
 
 export interface BootHandle {
   stop: () => void;
@@ -17,20 +43,11 @@ function formatClock(elapsedMs: number): string {
   return `${minutes}:${seconds}`;
 }
 
-/** Temporary on-canvas readout for M1 playtesting; the real DOM HUD lands in M5. */
-function drawDebugHud(renderer: Renderer, state: MatchState): void {
-  const { ctx } = renderer;
-  ctx.fillStyle = "#f5f5f0";
-  ctx.font = "16px monospace";
-  ctx.textBaseline = "top";
-  ctx.fillText(`HOME ${state.score.home} - ${state.score.away} AWAY`, 12, 10);
-  ctx.fillText(`${state.clock.phase}  ${formatClock(state.clock.elapsedMs)}`, 12, 30);
-}
-
-/** Public entry point: wires a MatchSim to a canvas via a fixed-timestep GameLoop. */
-export function boot(canvas: HTMLCanvasElement): BootHandle {
+/** Public entry point: wires the WorldSim (match + spectator + throwing) to a canvas
+ * via a fixed-timestep GameLoop, a follow camera, and unified input. */
+export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): BootHandle {
   const renderer = new Renderer(canvas);
-  const sim = new MatchSim();
+  const sim = new WorldSim();
 
   const resize = (): void => {
     const rect = canvas.getBoundingClientRect();
@@ -40,16 +57,63 @@ export function boot(canvas: HTMLCanvasElement): BootHandle {
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
 
+  // focus the camera between the spectator and the pitch they're facing
+  const focusTarget = (): Vec2 => {
+    const { spectator } = sim;
+    return {
+      x: spectator.pos.x + Math.cos(spectator.facing) * CAMERA_LOOK_AHEAD_M,
+      y: spectator.pos.y + Math.sin(spectator.facing) * CAMERA_LOOK_AHEAD_M,
+    };
+  };
+  renderer.camera.snapTo(focusTarget());
+
+  const getSpectatorScreen = (): Vec2 => {
+    const dpr = window.devicePixelRatio || 1;
+    const sp = renderer.project(sim.spectator.pos);
+    return { x: sp.x / dpr, y: sp.y / dpr };
+  };
+
+  const input = options.controlsRoot
+    ? new InputController({ canvas, root: options.controlsRoot, getSpectatorScreen })
+    : null;
+
+  function emitHud(): void {
+    if (!options.onHud) return;
+    const now = sim.nowMs;
+    const cooldowns = {} as Record<ItemId, number>;
+    for (const id of ITEM_ORDER) {
+      const end = sim.spectator.itemCooldowns[id];
+      const cd = ITEM_DEFS[id].cooldownMs;
+      cooldowns[id] = Math.max(0, Math.min(1, 1 - (end - now) / cd));
+    }
+    options.onHud({
+      home: sim.match.state.score.home,
+      away: sim.match.state.score.away,
+      phase: sim.match.state.clock.phase,
+      clock: formatClock(sim.match.state.clock.elapsedMs),
+      outcome: sim.outcome,
+      backedTeam: sim.backedTeam,
+      selectedItem: sim.spectator.heldItem,
+      cooldowns,
+    });
+  }
+
   function render(): void {
+    renderer.camera.follow(focusTarget());
+    const now = sim.nowMs;
     renderer.clear();
+    drawStands(renderer, now);
     drawPitch(renderer);
-    drawPlayers(renderer, sim.state.players);
-    drawBall(renderer, sim.state.ball);
-    drawDebugHud(renderer, sim.state);
+    drawPlayers(renderer, sim.match.state.players, now);
+    drawBall(renderer, sim.match.state.ball);
+    drawProjectiles(renderer, sim.projectiles, now);
+    drawSpectator(renderer, sim.spectator);
+    drawAim(renderer, sim.spectator, now);
+    emitHud();
   }
 
   const loop = new GameLoop(
-    (dtMs) => sim.update(dtMs),
+    (dtMs) => sim.update(input ? input.read() : EMPTY_INTENT, dtMs),
     () => render(),
   );
   loop.start();
@@ -58,6 +122,16 @@ export function boot(canvas: HTMLCanvasElement): BootHandle {
     stop: () => {
       loop.stop();
       resizeObserver.disconnect();
+      input?.dispose();
     },
   };
 }
+
+const EMPTY_INTENT = {
+  move: { x: 0, y: 0 },
+  aiming: false,
+  aimVector: { x: 0, y: 0 },
+  throwReleased: false,
+  ducking: false,
+  selectedItem: "popcorn" as ItemId,
+};

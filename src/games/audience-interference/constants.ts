@@ -33,6 +33,37 @@ export const GOAL_CELEBRATION_FREEZE_MS = 2200;
 export const HALF_LENGTH_MS = 4 * 60 * 1000;
 export const HALFTIME_BREAK_MS = 8000;
 
+// ---------- stands / spectator (M2) ----------
+
+/** Width (world meters) of the walkable crowd band wrapping the pitch. Mirrors the
+ * WORLD_MARGIN reserved in Renderer for the stands. */
+export const STAND_BAND_M = 7;
+/** How far outside the touchlines the spectator can roam (kept inside the stand band). */
+export const STAND_INSET_M = 1.5;
+export const SPECTATOR_SPEED = 9; // m/s walking along the stands
+export const SPECTATOR_ACCEL = 30;
+
+// ---------- camera (M2) ----------
+
+/** Vertical slice of the world (meters) the zoomed camera shows; ~half the pitch. */
+export const CAMERA_VISIBLE_HEIGHT_M = 38;
+/** Perspective strength: 0 = flat zoom, higher = more foreshortening up the screen. */
+export const CAMERA_TILT = 0.55;
+/** Virtual camera depth (meters) for the perspective denominator. */
+export const CAMERA_DEPTH_M = 70;
+/** Smoothing for the follow-cam focus (fraction toward target per 60fps tick). */
+export const CAMERA_FOLLOW_LERP = 0.12;
+/** How far ahead of the spectator (into the pitch) the camera looks. */
+export const CAMERA_LOOK_AHEAD_M = 16;
+
+// ---------- throwing (M3) ----------
+
+/** Seconds to reach full charge (max power/accuracy) while holding THROW. */
+export const THROW_CHARGE_SEC = 0.9;
+/** Flight time scales with distance; clamps keep arcs readable. */
+export const THROW_MIN_FLIGHT_MS = 350;
+export const THROW_MAX_FLIGHT_MS = 1100;
+
 // Off-ball "home slot" formation: depth (0 = own goal line, 1 = opponent goal line)
 // and lane fraction (0..1 across the pitch height), plus how strongly each role
 // drifts its depth/lane toward the ball's actual position.
