@@ -84,6 +84,12 @@ export interface Spectator {
   currentSection: string;
   heldItem: ItemId;
   itemCooldowns: Record<ItemId, number>;
+  /** true while THROW is held: aiming/charging a throw */
+  aiming: boolean;
+  /** unit aim direction in world space (pitch plane) */
+  aimDir: Vec2;
+  /** 0..1 charge built up while aiming; sets throw power + accuracy */
+  charge: number;
 }
 
 // ---------- items / throwing (M3) ----------
@@ -104,6 +110,8 @@ export interface ItemDef {
 export interface Projectile {
   readonly id: string;
   readonly itemId: ItemId;
+  /** launch origin on the pitch; pos interpolates startPos->targetPos over the flight */
+  readonly startPos: Vec2;
   pos: Vec2;
   vel: Vec2;
   targetPos: Vec2;
@@ -154,6 +162,11 @@ export interface InputIntent {
   ducking: boolean;
   selectedItem: ItemId;
 }
+
+// ---------- objective / outcome (M3) ----------
+
+/** The player secretly backs one side and sabotages the other. */
+export type GameOutcome = "playing" | "won" | "lost" | "draw";
 
 // ---------- top-level world state (composition root) ----------
 

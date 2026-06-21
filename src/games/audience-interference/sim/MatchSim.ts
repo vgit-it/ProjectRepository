@@ -62,6 +62,10 @@ export class MatchSim {
   private simMs = 0;
   private aiAccumulatorMs = 0;
 
+  get nowMs(): number {
+    return this.simMs;
+  }
+
   constructor() {
     this.state = {
       clock: createMatchClock(),
@@ -108,7 +112,7 @@ export class MatchSim {
         const gk = player as GoalkeeperPlayer;
         const teammates = this.state.players.filter((p) => p.team === gk.team && p.id !== gk.id);
         maybeClearBall(gk, this.state);
-        updateGoalkeeper(gk, this.state.ball, teammates);
+        updateGoalkeeper(gk, this.state.ball, teammates, nowMs);
       }
     }
 
