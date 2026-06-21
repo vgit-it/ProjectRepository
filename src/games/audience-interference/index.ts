@@ -34,6 +34,8 @@ export interface BootOptions {
 
 export interface BootHandle {
   stop: () => void;
+  /** Reset the match, spectator, and outcome to kick off a fresh game. */
+  restart: () => void;
 }
 
 function formatClock(elapsedMs: number): string {
@@ -47,7 +49,7 @@ function formatClock(elapsedMs: number): string {
  * via a fixed-timestep GameLoop, a follow camera, and unified input. */
 export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): BootHandle {
   const renderer = new Renderer(canvas);
-  const sim = new WorldSim();
+  let sim = new WorldSim();
 
   const resize = (): void => {
     const rect = canvas.getBoundingClientRect();
@@ -123,6 +125,10 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
       loop.stop();
       resizeObserver.disconnect();
       input?.dispose();
+    },
+    restart: () => {
+      sim = new WorldSim();
+      renderer.camera.snapTo(focusTarget());
     },
   };
 }
