@@ -12,7 +12,11 @@ const ITEM_COLOR: Record<ItemId, string> = {
 
 /** In-flight items: a ground shadow at the landing track + the item lofted along a
  * parabolic arc above it. */
-export function drawProjectiles(renderer: Renderer, projectiles: Projectile[], nowMs: number): void {
+export function drawProjectiles(
+  renderer: Renderer,
+  projectiles: Projectile[],
+  nowMs: number,
+): void {
   const { ctx } = renderer;
   for (const proj of projectiles) {
     const ground = renderer.project(proj.pos);

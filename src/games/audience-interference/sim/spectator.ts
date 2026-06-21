@@ -47,11 +47,15 @@ export function updateSpectator(
   spec.facing = Math.atan2(toCenter.y, toCenter.x);
   const forward = normalize(toCenter);
 
+  const wasAiming = spec.aiming;
   spec.aiming = intent.aiming;
   if (intent.aiming) {
     // charging a throw: aim with the stick, build power, don't walk
     spec.charge = Math.min(1, spec.charge + dtSec / THROW_CHARGE_SEC);
+    // when the stick is idle, baseline the aim toward the pitch so the reticle
+    // points into play from any stand (not the stale initial down-vector)
     if (length(intent.aimVector) > 0.05) spec.aimDir = normalize(intent.aimVector);
+    else spec.aimDir = forward;
     spec.vel = scale(spec.vel, 0.6);
   } else {
     // walking the stands
@@ -64,19 +68,21 @@ export function updateSpectator(
   clampToRing(spec.pos);
 
   if (intent.throwReleased) {
-    const proj = tryThrow(spec, forward, nowMs);
+    // use the direction we were aiming on the frame before release; a bare tap
+    // (no aiming frame) falls back to throwing straight into the pitch
+    const dir = wasAiming ? spec.aimDir : forward;
+    const proj = tryThrow(spec, dir, nowMs);
     spec.charge = 0;
     return proj;
   }
   return null;
 }
 
-function tryThrow(spec: Spectator, forward: Vec2, nowMs: number): Projectile | null {
+function tryThrow(spec: Spectator, dir: Vec2, nowMs: number): Projectile | null {
   const def = ITEM_DEFS[spec.heldItem];
   if (nowMs < spec.itemCooldowns[spec.heldItem]) return null;
 
   const power = 0.4 + 0.6 * spec.charge;
-  const dir = spec.aiming ? spec.aimDir : forward;
   const origin = clampToPitch({ ...spec.pos });
   let target = add(origin, scale(dir, def.range * power));
 

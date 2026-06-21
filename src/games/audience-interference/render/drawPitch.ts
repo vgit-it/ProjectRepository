@@ -64,7 +64,12 @@ export function drawPitch(renderer: Renderer): void {
   );
 
   // center circle (sampled)
-  strokeWorldPolyline(renderer, circlePoints(PITCH_WIDTH / 2, PITCH_HEIGHT / 2, CENTER_CIRCLE_RADIUS_M), LINE_COLOR, lw);
+  strokeWorldPolyline(
+    renderer,
+    circlePoints(PITCH_WIDTH / 2, PITCH_HEIGHT / 2, CENTER_CIRCLE_RADIUS_M),
+    LINE_COLOR,
+    lw,
+  );
 
   drawGoal(renderer, 0, 1, lw);
   drawGoal(renderer, PITCH_WIDTH, -1, lw);

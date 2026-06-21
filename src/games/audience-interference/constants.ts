@@ -1,14 +1,14 @@
 import type { PlayerRole } from "./types";
 
 // World units are meters. Pitch sits with (0,0) at the home corner flag.
-export const PITCH_WIDTH = 100;
-export const PITCH_HEIGHT = 64;
+export const PITCH_WIDTH = 75;
+export const PITCH_HEIGHT = 48;
 export const GOAL_WIDTH = 9;
 export const GOAL_Y_MIN = PITCH_HEIGHT / 2 - GOAL_WIDTH / 2;
 export const GOAL_Y_MAX = PITCH_HEIGHT / 2 + GOAL_WIDTH / 2;
 
 export const PLAYER_RADIUS = 1.6;
-export const BALL_RADIUS = 0.5;
+export const BALL_RADIUS = 0.85;
 
 export const PLAYER_BASE_SPEED = 6.5; // m/s, jogging/chasing pace
 export const PLAYER_ACCEL = 25; // m/s^2, how fast velocity tracks the desired seek vector
@@ -37,16 +37,16 @@ export const HALFTIME_BREAK_MS = 8000;
 
 /** Width (world meters) of the walkable crowd band wrapping the pitch. Mirrors the
  * WORLD_MARGIN reserved in Renderer for the stands. */
-export const STAND_BAND_M = 7;
+export const STAND_BAND_M = 5.25;
 /** How far outside the touchlines the spectator can roam (kept inside the stand band). */
-export const STAND_INSET_M = 1.5;
-export const SPECTATOR_SPEED = 9; // m/s walking along the stands
-export const SPECTATOR_ACCEL = 30;
+export const STAND_INSET_M = 1.125;
+export const SPECTATOR_SPEED = 12; // m/s walking along the stands
+export const SPECTATOR_ACCEL = 40;
 
 // ---------- camera (M2) ----------
 
 /** Vertical slice of the world (meters) the zoomed camera shows; ~half the pitch. */
-export const CAMERA_VISIBLE_HEIGHT_M = 38;
+export const CAMERA_VISIBLE_HEIGHT_M = 28.5;
 /** Perspective strength: 0 = flat zoom, higher = more foreshortening up the screen. */
 export const CAMERA_TILT = 0.55;
 /** Virtual camera depth (meters) for the perspective denominator. */
@@ -54,7 +54,7 @@ export const CAMERA_DEPTH_M = 70;
 /** Smoothing for the follow-cam focus (fraction toward target per 60fps tick). */
 export const CAMERA_FOLLOW_LERP = 0.12;
 /** How far ahead of the spectator (into the pitch) the camera looks. */
-export const CAMERA_LOOK_AHEAD_M = 16;
+export const CAMERA_LOOK_AHEAD_M = 12;
 
 // ---------- throwing (M3) ----------
 

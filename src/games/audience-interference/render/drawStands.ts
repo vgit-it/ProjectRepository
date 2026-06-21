@@ -53,10 +53,30 @@ export function drawStands(renderer: Renderer, nowMs: number): void {
   const { ctx } = renderer;
 
   // terrace floor: the band quads (drawn as one big outer ring of fills)
-  fillQuad(renderer, { x: -STAND_BAND_M, y: -STAND_BAND_M }, { x: PITCH_WIDTH + STAND_BAND_M, y: -STAND_INSET_M }, TERRACE_FILL); // top
-  fillQuad(renderer, { x: -STAND_BAND_M, y: PITCH_HEIGHT + STAND_INSET_M }, { x: PITCH_WIDTH + STAND_BAND_M, y: PITCH_HEIGHT + STAND_BAND_M }, TERRACE_FILL); // bottom
-  fillQuad(renderer, { x: -STAND_BAND_M, y: -STAND_INSET_M }, { x: -STAND_INSET_M, y: PITCH_HEIGHT + STAND_INSET_M }, TERRACE_FILL); // left
-  fillQuad(renderer, { x: PITCH_WIDTH + STAND_INSET_M, y: -STAND_INSET_M }, { x: PITCH_WIDTH + STAND_BAND_M, y: PITCH_HEIGHT + STAND_INSET_M }, TERRACE_FILL); // right
+  fillQuad(
+    renderer,
+    { x: -STAND_BAND_M, y: -STAND_BAND_M },
+    { x: PITCH_WIDTH + STAND_BAND_M, y: -STAND_INSET_M },
+    TERRACE_FILL,
+  ); // top
+  fillQuad(
+    renderer,
+    { x: -STAND_BAND_M, y: PITCH_HEIGHT + STAND_INSET_M },
+    { x: PITCH_WIDTH + STAND_BAND_M, y: PITCH_HEIGHT + STAND_BAND_M },
+    TERRACE_FILL,
+  ); // bottom
+  fillQuad(
+    renderer,
+    { x: -STAND_BAND_M, y: -STAND_INSET_M },
+    { x: -STAND_INSET_M, y: PITCH_HEIGHT + STAND_INSET_M },
+    TERRACE_FILL,
+  ); // left
+  fillQuad(
+    renderer,
+    { x: PITCH_WIDTH + STAND_INSET_M, y: -STAND_INSET_M },
+    { x: PITCH_WIDTH + STAND_BAND_M, y: PITCH_HEIGHT + STAND_INSET_M },
+    TERRACE_FILL,
+  ); // right
 
   if (!seats) seats = buildSeats();
 
