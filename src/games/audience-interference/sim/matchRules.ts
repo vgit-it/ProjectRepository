@@ -26,6 +26,8 @@ function resetForKickoff(
   const { ball } = state;
   ball.pos = { x: PITCH_WIDTH / 2, y: PITCH_HEIGHT / 2 };
   ball.vel = { x: 0, y: 0 };
+  ball.z = 0;
+  ball.vz = 0;
   ball.inPlay = true;
   ball.pickupBlockedFor = null;
   ball.pickupBlockedUntilMs = 0;
@@ -69,6 +71,8 @@ function awardOutOfBounds(state: MatchState, nowMs: number): void {
   }
 
   ball.vel = { x: 0, y: 0 };
+  ball.z = 0;
+  ball.vz = 0;
   ball.pickupBlockedFor = null;
   ball.pickupBlockedUntilMs = 0;
   ball.freezeUntilMs = nowMs + DEAD_BALL_FREEZE_MS;

@@ -13,7 +13,6 @@ import type { Renderer } from "./Renderer";
 const TEAM_FILL: Record<Team, string> = { home: "#3b82f6", away: "#eab308" };
 const GK_RING_COLOR = "rgba(255, 255, 255, 0.9)";
 const BALL_CARRIER_RING_COLOR = "#ffffff";
-const SHADOW_COLOR = "rgba(0, 0, 0, 0.28)";
 const DAZE_COLOR = "#ffd166";
 
 /** Persisted horizontal facing per player (true = facing left) so the sprite keeps
@@ -31,12 +30,6 @@ export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: n
     const sp = renderer.project(player.pos);
     if (!renderer.inView(sp)) continue;
     const radiusPx = PLAYER_RADIUS * sp.scale;
-
-    // ground shadow
-    ctx.beginPath();
-    ctx.ellipse(sp.x, sp.y + radiusPx * 0.15, radiusPx * 0.95, radiusPx * 0.4, 0, 0, Math.PI * 2);
-    ctx.fillStyle = SHADOW_COLOR;
-    ctx.fill();
 
     const running = length(player.vel) > PLAYER_RUN_THRESHOLD;
     if (Math.abs(player.vel.x) > PLAYER_RUN_THRESHOLD) {
