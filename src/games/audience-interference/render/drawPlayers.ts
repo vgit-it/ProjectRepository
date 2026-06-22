@@ -1,4 +1,9 @@
-import { PLAYER_FRAME_CYCLE_MS, PLAYER_RADIUS, PLAYER_RUN_THRESHOLD } from "../constants";
+import {
+  PLAYER_FRAME_CYCLE_MS,
+  PLAYER_RADIUS,
+  PLAYER_RUN_THRESHOLD,
+  PLAYER_SPRITE_SCALE,
+} from "../constants";
 import type { GoalkeeperPlayer, MatchPlayer, Team } from "../types";
 import { length } from "../vec";
 import { getPlayerFrame, isPlayerSpriteReady, playerFrameAspect } from "./playerSprite";
@@ -43,7 +48,7 @@ export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: n
       const frameIndex = running ? ((Math.floor(nowMs / PLAYER_FRAME_CYCLE_MS) % 2) as 0 | 1) : 0;
       const frame = getPlayerFrame(player.team, frameIndex);
       if (frame) {
-        const w = radiusPx * 2;
+        const w = radiusPx * 2 * PLAYER_SPRITE_SCALE;
         const h = w / playerFrameAspect();
         ctx.save();
         ctx.translate(sp.x, sp.y);

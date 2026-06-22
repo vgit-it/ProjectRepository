@@ -17,6 +17,9 @@ export const PLAYER_ACCEL = 25; // m/s^2, how fast velocity tracks the desired s
 export const PLAYER_FRAME_CYCLE_MS = 400;
 /** Speed (m/s) above which a player is "running" (animates + updates facing). */
 export const PLAYER_RUN_THRESHOLD = 0.6;
+/** Drawn sprite size as a multiple of PLAYER_RADIUS; purely visual (shadow, rings,
+ * and the PLAYER_RADIUS-based dribble offset in ballPhysics.ts are unaffected). */
+export const PLAYER_SPRITE_SCALE = 3;
 
 export const PRESS_RADIUS = 10;
 export const DUEL_RADIUS = 1.6;

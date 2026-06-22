@@ -8,9 +8,11 @@ const TEAM_TINT: Record<Team, string> = { home: "#3b82f6", away: "#eab308" };
 // The supplied sheet is two frames side-by-side: left = idle, right = mid-stride.
 const FRAME_COUNT = 2;
 
-// Respect the GitHub Pages base path (BASE_URL carries a trailing slash, as used in
-// Shell.astro), so the asset resolves both in dev ("/") and under "/ProjectRepository".
-const SPRITE_URL = `${import.meta.env.BASE_URL}games/audience-interference/players.png`;
+// Respect the GitHub Pages base path so the asset resolves both in dev ("/") and
+// under "/ProjectRepository". BASE_URL isn't guaranteed to carry a trailing slash
+// (it doesn't here), so normalize it the same way Shell.astro does.
+const BASE = import.meta.env.BASE_URL;
+const SPRITE_URL = `${BASE.endsWith("/") ? BASE : `${BASE}/`}games/audience-interference/players.png`;
 
 /** Pre-baked, team-tinted frames, indexed [team][frameIndex]. Populated on load. */
 const baked: Record<Team, HTMLCanvasElement[]> = { home: [], away: [] };
