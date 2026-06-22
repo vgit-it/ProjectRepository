@@ -19,6 +19,8 @@ export interface MatchPlayer {
   moveTarget: Vec2;
   aiState: PlayerAIState;
   dazedUntilMs: number;
+  /** sim time until which the player is fully frozen (e.g. just dispossessed); 0 = active */
+  stunnedUntilMs: number;
   /** baseline ability roll input: used in duels and pass/shot accuracy */
   skill: number;
   hasBall: boolean;
@@ -33,6 +35,10 @@ export interface GoalkeeperPlayer extends MatchPlayer {
 export interface Ball {
   pos: Vec2;
   vel: Vec2;
+  /** height above the pitch (m); 0 = grounded. Nonzero only mid-loft. */
+  z: number;
+  /** vertical velocity (m/s) while airborne, integrated against BALL_GRAVITY */
+  vz: number;
   /** entity id of current possessor, or null when loose/in-flight */
   possessedBy: string | null;
   inPlay: boolean;

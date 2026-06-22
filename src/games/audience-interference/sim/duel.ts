@@ -1,4 +1,10 @@
-import { DUEL_COOLDOWN_MS, DUEL_JITTER, DUEL_RADIUS, PICKUP_BLOCK_MS } from "../constants";
+import {
+  DUEL_COOLDOWN_MS,
+  DUEL_JITTER,
+  DUEL_RADIUS,
+  PICKUP_BLOCK_MS,
+  STEAL_STUN_MS,
+} from "../constants";
 import type { MatchPlayer, MatchState } from "../types";
 import { distance, normalize, scale } from "../vec";
 
@@ -36,6 +42,11 @@ export function resolveDuels(state: MatchState, nowMs: number): void {
   ball.possessedBy = null;
   ball.pickupBlockedFor = carrier.id;
   ball.pickupBlockedUntilMs = nowMs + PICKUP_BLOCK_MS;
+
+  // The dispossessed player is briefly frozen (no movement, no decisions) — arcade
+  // "you got robbed" beat. Hard-stop their momentum immediately.
+  carrier.stunnedUntilMs = nowMs + STEAL_STUN_MS;
+  carrier.vel = { x: 0, y: 0 };
 
   const popOffDir = normalize({ x: Math.random() - 0.5, y: Math.random() - 0.5 });
   const popOffSpeed = POP_OFF_MIN_SPEED + Math.random() * (POP_OFF_MAX_SPEED - POP_OFF_MIN_SPEED);

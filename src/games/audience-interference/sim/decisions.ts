@@ -3,8 +3,9 @@ import type { MatchPlayer, Vec2 } from "../types";
 import { distanceToSegment, length, sub } from "../vec";
 
 const SHOT_LANE_WIDTH = 3;
-const PASS_LANE_WIDTH = 2.5;
-const DRIBBLE_BASE_SCORE = 0.35;
+export const PASS_LANE_WIDTH = 2.5;
+// Arcade feel: holding the ball is a weak default so a viable pass usually wins out.
+const DRIBBLE_BASE_SCORE = 0.2;
 
 function goalCenter(player: MatchPlayer): Vec2 {
   return { x: player.team === "home" ? PITCH_WIDTH : 0, y: PITCH_HEIGHT / 2 };
@@ -14,7 +15,12 @@ function depthOf(player: MatchPlayer): number {
   return player.team === "home" ? player.pos.x : PITCH_WIDTH - player.pos.x;
 }
 
-function countBlockers(from: Vec2, to: Vec2, opponents: MatchPlayer[], laneWidth: number): number {
+export function countBlockers(
+  from: Vec2,
+  to: Vec2,
+  opponents: MatchPlayer[],
+  laneWidth: number,
+): number {
   let count = 0;
   for (const opp of opponents) {
     if (distanceToSegment(opp.pos, from, to) < laneWidth) count++;
@@ -41,7 +47,9 @@ export function scorePass(
   opponents: MatchPlayer[],
 ): number {
   const blockers = countBlockers(player.pos, teammate.pos, opponents, PASS_LANE_WIDTH);
-  const laneOpenness = Math.max(0, 1 - blockers * 0.3);
+  // Softer blocker penalty than before: lofted passes can clear a crowded lane, so a
+  // blocked lane shouldn't strongly discourage attempting the pass.
+  const laneOpenness = Math.max(0, 1 - blockers * 0.2);
   const progress = Math.max(-1, Math.min(1, (depthOf(teammate) - depthOf(player)) / 30));
   const forwardProgress = 0.5 + 0.5 * progress;
   const dist = length(sub(teammate.pos, player.pos));

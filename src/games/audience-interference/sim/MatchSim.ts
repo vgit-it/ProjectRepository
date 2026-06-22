@@ -29,6 +29,7 @@ function createPlayer(team: Team, slotIndex: number): MatchPlayer {
     moveTarget: { x: 0, y: 0 },
     aiState: "HOLD_SHAPE",
     dazedUntilMs: 0,
+    stunnedUntilMs: 0,
     skill: 0.55 + Math.random() * 0.3,
     hasBall: false,
   };
@@ -74,6 +75,8 @@ export class MatchSim {
       ball: {
         pos: { x: PITCH_WIDTH / 2, y: PITCH_HEIGHT / 2 },
         vel: { x: 0, y: 0 },
+        z: 0,
+        vz: 0,
         possessedBy: null,
         inPlay: true,
         lastTouchedByTeam: null,
@@ -103,12 +106,15 @@ export class MatchSim {
       this.aiAccumulatorMs %= AI_DECISION_INTERVAL_MS;
       const nearestToLooseBallId = findNearestToLooseBall(this.state);
       for (const player of this.state.players) {
+        // A stunned (just-dispossessed) player makes no decisions until they recover.
+        if (nowMs < player.stunnedUntilMs) continue;
         if (player.role !== "GK") updateOutfieldPlayer(player, this.state, nearestToLooseBallId);
       }
     }
 
     for (const player of this.state.players) {
       if (player.role === "GK") {
+        if (nowMs < player.stunnedUntilMs) continue;
         const gk = player as GoalkeeperPlayer;
         const teammates = this.state.players.filter((p) => p.team === gk.team && p.id !== gk.id);
         maybeClearBall(gk, this.state);
@@ -118,7 +124,9 @@ export class MatchSim {
 
     const dtSec = dtMs / 1000;
     for (const player of this.state.players) {
-      const speedMultiplier = nowMs < player.dazedUntilMs ? 0.35 : 1;
+      // Full freeze while stunned takes precedence over the item-daze slow.
+      const speedMultiplier =
+        nowMs < player.stunnedUntilMs ? 0 : nowMs < player.dazedUntilMs ? 0.35 : 1;
       stepMovement(player, dtSec, speedMultiplier);
     }
 

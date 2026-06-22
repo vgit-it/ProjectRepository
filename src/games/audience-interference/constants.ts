@@ -35,6 +35,15 @@ export const PASS_SPEED = 18;
 export const BALL_DRAG_PER_SEC = 0.55; // exponential velocity decay coefficient
 export const BALL_BOUNDARY_DAMPING = 0.55;
 
+/** Downward acceleration (m/s^2) applied to a lofted ball's height; tuned for snappy
+ * arcade arcs rather than realistic 9.8. */
+export const BALL_GRAVITY = 22;
+/** Passes to a receiver at least this far away (m) are lofted; closer passes stay
+ * grounded unless the lane is blocked. */
+export const LOFT_MIN_DIST = 18;
+/** How long (ms) a player is fully frozen after being dispossessed in a duel. */
+export const STEAL_STUN_MS = 1500;
+
 export const DEAD_BALL_FREEZE_MS = 700;
 export const GOAL_CELEBRATION_FREEZE_MS = 2200;
 
