@@ -1,5 +1,7 @@
-import { PLAYER_RADIUS } from "../constants";
+import { PLAYER_FRAME_CYCLE_MS, PLAYER_RADIUS, PLAYER_RUN_THRESHOLD } from "../constants";
 import type { GoalkeeperPlayer, MatchPlayer, Team } from "../types";
+import { length } from "../vec";
+import { getPlayerFrame, isPlayerSpriteReady, playerFrameAspect } from "./playerSprite";
 import type { Renderer } from "./Renderer";
 
 // DEV PALETTE: see drawPitch.ts for the scoped CLAUDE.md palette exception note.
@@ -9,8 +11,13 @@ const BALL_CARRIER_RING_COLOR = "#ffffff";
 const SHADOW_COLOR = "rgba(0, 0, 0, 0.28)";
 const DAZE_COLOR = "#ffd166";
 
+/** Persisted horizontal facing per player (true = facing left) so the sprite keeps
+ * its last orientation while idle instead of snapping back to the default. */
+const facingLeft = new Map<string, boolean>();
+
 export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: number): void {
   const { ctx } = renderer;
+  const spriteReady = isPlayerSpriteReady();
 
   // Draw far→near (smaller screen-y first) so nearer players overlap correctly.
   const ordered = [...players].sort((a, b) => a.pos.y - b.pos.y);
@@ -26,13 +33,37 @@ export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: n
     ctx.fillStyle = SHADOW_COLOR;
     ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(sp.x, sp.y, radiusPx, 0, Math.PI * 2);
-    ctx.fillStyle = TEAM_FILL[player.team];
-    ctx.fill();
+    const running = length(player.vel) > PLAYER_RUN_THRESHOLD;
+    if (Math.abs(player.vel.x) > PLAYER_RUN_THRESHOLD) {
+      facingLeft.set(player.id, player.vel.x < 0);
+    }
+
+    if (spriteReady) {
+      // idle -> frame 0; running -> alternate the two frames every 0.4s.
+      const frameIndex = running ? ((Math.floor(nowMs / PLAYER_FRAME_CYCLE_MS) % 2) as 0 | 1) : 0;
+      const frame = getPlayerFrame(player.team, frameIndex);
+      if (frame) {
+        const w = radiusPx * 2;
+        const h = w / playerFrameAspect();
+        ctx.save();
+        ctx.translate(sp.x, sp.y);
+        if (facingLeft.get(player.id)) ctx.scale(-1, 1);
+        // anchor so the sprite's feet sit on the projected ground point
+        ctx.drawImage(frame, -w / 2, -h + radiusPx * 0.15, w, h);
+        ctx.restore();
+      }
+    } else {
+      // Fallback (sprite asset not yet loaded): the original team-colored dot.
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, radiusPx, 0, Math.PI * 2);
+      ctx.fillStyle = TEAM_FILL[player.team];
+      ctx.fill();
+    }
 
     if (player.role === "GK") {
       const gk = player as GoalkeeperPlayer;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, radiusPx, 0, Math.PI * 2);
       ctx.lineWidth = Math.max(1, radiusPx * 0.25);
       ctx.strokeStyle = nowMs < gk.blindedUntilMs ? DAZE_COLOR : GK_RING_COLOR;
       ctx.stroke();

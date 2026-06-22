@@ -13,6 +13,11 @@ export const BALL_RADIUS = 1.4;
 export const PLAYER_BASE_SPEED = 6.5; // m/s, jogging/chasing pace
 export const PLAYER_ACCEL = 25; // m/s^2, how fast velocity tracks the desired seek vector
 
+/** Sprite run-cycle cadence: alternate the two frames every 0.4s while moving. */
+export const PLAYER_FRAME_CYCLE_MS = 400;
+/** Speed (m/s) above which a player is "running" (animates + updates facing). */
+export const PLAYER_RUN_THRESHOLD = 0.6;
+
 export const PRESS_RADIUS = 10;
 export const DUEL_RADIUS = 1.6;
 export const DUEL_COOLDOWN_MS = 600;
