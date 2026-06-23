@@ -2,10 +2,10 @@
 /**
  * audience-interference.astro — playable route for the Audience Interference game.
  *
- * You are a spectator in the stands: hop around the ground with the ◀ ▶ buttons (or
- * ←/→ · A/D — the zoomed follow-camera pans with you), then drag anywhere on the pitch
- * like a slingshot to aim a thrown item and release to launch it, dazing the team you're
- * sabotaging so the side you back wins.
+ * You are a spectator in the stands: hop around the ground with the bottom-left D-pad (or
+ * arrow keys · WASD — the zoomed follow-camera pans with you), then hold the bottom-right
+ * throw button and deflect it like a joystick to place the landing reticle within reach;
+ * release to launch the item, dazing the team you're sabotaging so the side you back wins.
  *
  * DEV PALETTE EXCEPTION (temporary, scoped to this page + src/games/audience-interference/
  * only): CLAUDE.md rule 4 reserves color for the Seal stamp and keeps everything else
@@ -195,34 +195,79 @@ import Shell from "@layouts/Shell.astro";
     inset: 0;
     pointer-events: none;
   }
-  /* ◀ ▶ ring-hop buttons in the bottom corners; the whole pitch above is the aim
-     surface, so these stay small and out of the way. */
-  :global(.ai-move-left),
-  :global(.ai-move-right) {
+  /* D-pad, bottom-left: a +-shaped cluster of four hop buttons. Directions are
+     screen-relative, so the button you press is the way you move. */
+  :global(.ai-dpad) {
     position: absolute;
     inset-block-end: 5%;
-    width: clamp(58px, 14vw, 92px);
+    inset-inline-start: 4%;
+    width: clamp(132px, 33vw, 186px);
     aspect-ratio: 1;
-    border-radius: 50%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    pointer-events: none;
+  }
+  :global(.ai-dpad button) {
+    border-radius: 14px;
     background: rgba(120, 200, 220, 0.2);
     border: 2px solid rgba(120, 200, 220, 0.55);
     color: #eafaff;
-    font-size: clamp(1.1rem, 3.2vw, 1.7rem);
+    font-size: clamp(0.9rem, 2.8vw, 1.4rem);
     line-height: 1;
     pointer-events: auto;
     cursor: pointer;
     touch-action: none;
+    padding: 0;
   }
-  :global(.ai-move-left) {
-    inset-inline-start: 4%;
+  :global(.ai-dpad-up) {
+    grid-area: 1 / 2 / 2 / 3;
   }
-  :global(.ai-move-right) {
-    inset-inline-end: 4%;
+  :global(.ai-dpad-left) {
+    grid-area: 2 / 1 / 3 / 2;
   }
-  :global(.ai-move-left.is-held),
-  :global(.ai-move-right.is-held) {
+  :global(.ai-dpad-right) {
+    grid-area: 2 / 3 / 3 / 4;
+  }
+  :global(.ai-dpad-down) {
+    grid-area: 3 / 2 / 4 / 3;
+  }
+  :global(.ai-dpad button.is-held) {
     background: rgba(120, 200, 220, 0.45);
-    transform: scale(0.94);
+    transform: scale(0.92);
+  }
+
+  /* Throw joystick, bottom-right: hold to aim, deflect the knob to place the reticle,
+     release to launch. */
+  :global(.ai-throw) {
+    position: absolute;
+    inset-block-end: 5%;
+    inset-inline-end: 4%;
+    width: clamp(84px, 20vw, 128px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgba(255, 61, 181, 0.16);
+    border: 2px solid rgba(255, 61, 181, 0.6);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: none;
+    padding: 0;
+  }
+  :global(.ai-throw.is-held) {
+    background: rgba(255, 61, 181, 0.28);
+  }
+  :global(.ai-throw-knob) {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+    width: 42%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgba(255, 61, 181, 0.55);
+    border: 2px solid rgba(255, 220, 240, 0.8);
+    pointer-events: none;
   }
   :global(.ai-items) {
     position: absolute;

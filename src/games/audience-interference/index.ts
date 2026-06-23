@@ -27,7 +27,7 @@ export interface HudState {
 }
 
 export interface BootOptions {
-  /** container to mount the on-screen ◀ ▶ move + item buttons into */
+  /** container to mount the on-screen D-pad + throw joystick + item buttons into */
   controlsRoot?: HTMLElement;
   /** called every frame with the current HUD snapshot */
   onHud?: (hud: HudState) => void;
@@ -74,10 +74,8 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
   };
   renderer.camera.snapTo(focusTarget());
 
-  const screenToWorld = (css: Vec2): Vec2 => renderer.unproject(css.x, css.y);
-
   const input = options.controlsRoot
-    ? new InputController({ canvas, root: options.controlsRoot, screenToWorld })
+    ? new InputController({ root: options.controlsRoot })
     : null;
 
   function emitHud(): void {
@@ -147,9 +145,9 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
 }
 
 const EMPTY_INTENT = {
-  moveDir: 0 as const,
+  moveDir: { x: 0, y: 0 },
   aiming: false,
-  aimPoint: { x: 0, y: 0 },
+  aimVector: { x: 0, y: 0 },
   throwReleased: false,
   ducking: false,
   selectedItem: "popcorn" as ItemId,

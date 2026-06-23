@@ -10,7 +10,7 @@ import {
   THROW_MIN_FLIGHT_MS,
 } from "../constants";
 import type { InputIntent, Projectile, Spectator, Vec2 } from "../types";
-import { add, length, scale, sub } from "../vec";
+import { add, dot, length, scale, sub } from "../vec";
 import { ITEM_DEFS } from "./items";
 
 const PITCH_CENTER: Vec2 = { x: PITCH_WIDTH / 2, y: PITCH_HEIGHT / 2 };
@@ -110,12 +110,14 @@ export function updateSpectator(
 
   spec.aiming = intent.aiming;
   if (intent.aiming) {
-    // Slingshot: the reticle is the point the player is touching (already in world
-    // space), clamped to the item's reach and the pitch. No drift, no hopping.
-    spec.aimTarget = clampToPitch(clampToRange(intent.aimPoint, origin, range));
-    // Power == how far we're reaching, 0..1; drives the slingshot-band visual.
-    spec.charge = range > 0 ? Math.min(1, length(sub(spec.aimTarget, origin)) / range) : 0;
+    // Throw joystick: deflection (already a unit vector in [-1,1] per axis) maps
+    // straight to a landing offset, scaled by the item's reach and clamped to the
+    // pitch. No drift — the reticle sits exactly where the stick points.
+    spec.aimTarget = clampToPitch(add(origin, scale(intent.aimVector, range)));
+    // Power == stick deflection magnitude, 0..1; drives the power-band visual.
+    spec.charge = Math.min(1, length(intent.aimVector));
   } else {
+    // Movement is locked while aiming (this branch isn't reached then).
     stepRing(spec, intent.moveDir, nowMs);
   }
 
@@ -127,12 +129,20 @@ export function updateSpectator(
   return null;
 }
 
-/** Hop one perch around the ring per `PERCH_STEP_MS`; dir -1 = CCW (prev), +1 = CW. */
-function stepRing(spec: Spectator, dir: number, nowMs: number): void {
-  if (dir === 0 || nowMs < spec.nextStepAtMs) return;
+/** Hop to the neighbouring perch most aligned with the requested screen direction,
+ * throttled to one hop per `PERCH_STEP_MS`. Screen-relative: left/right walk the
+ * top & bottom stands, up/down walk the sides, and corners turn onto the next edge. */
+function stepRing(spec: Spectator, dir: Vec2, nowMs: number): void {
+  if ((dir.x === 0 && dir.y === 0) || nowMs < spec.nextStepAtMs) return;
   const perches = buildPerches();
   const n = perches.length;
-  spec.perchIndex = (spec.perchIndex + (dir > 0 ? 1 : -1) + n) % n;
+  const cur = perches[spec.perchIndex];
+  const prevIdx = (spec.perchIndex - 1 + n) % n;
+  const nextIdx = (spec.perchIndex + 1) % n;
+  const dotPrev = dot(sub(perches[prevIdx], cur), dir);
+  const dotNext = dot(sub(perches[nextIdx], cur), dir);
+  if (dotPrev <= 0 && dotNext <= 0) return; // no neighbour lies that way
+  spec.perchIndex = dotNext >= dotPrev ? nextIdx : prevIdx;
   spec.pos = { ...perches[spec.perchIndex] };
   spec.nextStepAtMs = nowMs + PERCH_STEP_MS;
 }
@@ -166,14 +176,6 @@ function tryThrow(spec: Spectator, origin: Vec2, target: Vec2, nowMs: number): P
     launchedAtMs: nowMs,
     impactAtMs: nowMs + flightMs,
   };
-}
-
-/** Pull a point back onto the disc of the given radius around an origin. */
-function clampToRange(p: Vec2, origin: Vec2, radius: number): Vec2 {
-  const d = sub(p, origin);
-  const len = length(d);
-  if (len <= radius) return p;
-  return add(origin, scale(d, radius / len));
 }
 
 function clampToPitch(p: Vec2): Vec2 {

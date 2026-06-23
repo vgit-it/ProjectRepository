@@ -8,8 +8,8 @@ import type { Renderer } from "./Renderer";
 const AIM_COLOR = "#ff3db5";
 const RANGE_SAMPLES = 36; // polyline segments approximating the range-limit ring
 
-/** The pink slingshot UI: a faint range-limit ring around the player, a power band
- * stretching to the landing marker, and the reticle the drag points at. */
+/** The pink throw-joystick UI: a faint range-limit ring around the player, a power band
+ * stretching to the landing marker, and the reticle the joystick deflection points at. */
 export function drawAim(renderer: Renderer, spec: Spectator, nowMs: number): void {
   if (!spec.aiming) return;
   const { ctx } = renderer;
