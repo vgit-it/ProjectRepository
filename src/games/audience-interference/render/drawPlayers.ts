@@ -1,9 +1,11 @@
 import {
+  IMPACT_SHAKE_MS,
   PLAYER_FRAME_CYCLE_MS,
   PLAYER_RADIUS,
   PLAYER_RUN_THRESHOLD,
   PLAYER_SPRITE_SCALE,
 } from "../constants";
+import { prefersReducedMotion } from "@lib/motion";
 import type { GoalkeeperPlayer, MatchPlayer, Team } from "../types";
 import { length } from "../vec";
 import {
@@ -35,6 +37,15 @@ export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: n
     const sp = renderer.project(player.pos);
     if (!renderer.inView(sp)) continue;
     const radiusPx = PLAYER_RADIUS * sp.scale;
+
+    // Brief impact jolt: jitter the whole sprite for a fraction of a second after
+    // a tackle / daze / kick. Render-only, decays to nothing; off under reduced motion.
+    if (!prefersReducedMotion() && nowMs < player.shakeUntilMs) {
+      const t = (player.shakeUntilMs - nowMs) / IMPACT_SHAKE_MS;
+      const amp = radiusPx * 0.2 * t;
+      sp.x += (Math.random() * 2 - 1) * amp;
+      sp.y += (Math.random() * 2 - 1) * amp;
+    }
 
     const running = length(player.vel) > PLAYER_RUN_THRESHOLD;
     if (Math.abs(player.vel.x) > PLAYER_RUN_THRESHOLD) {

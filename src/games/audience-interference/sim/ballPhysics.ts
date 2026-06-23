@@ -96,6 +96,10 @@ export function resolvePickups(state: MatchState, nowMs: number): void {
   let nearestDist = Infinity;
   for (const p of state.players) {
     if (ball.pickupBlockedFor === p.id && nowMs < ball.pickupBlockedUntilMs) continue;
+    // A frozen player (just-beaten tussle loser / dispossessed carrier) can't acquire
+    // the ball by any path — including snatching the loose ball that popped off next
+    // to them. Mirrors the same guard in contest.ts and duel.ts.
+    if (nowMs < p.stunnedUntilMs) continue;
     const d = distance(p.pos, ball.pos);
     if (d < PICKUP_RADIUS && d < nearestDist) {
       nearestDist = d;

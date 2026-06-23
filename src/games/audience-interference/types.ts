@@ -32,6 +32,8 @@ export interface MatchPlayer {
   /** baseline ability roll input: used in duels and pass/shot accuracy */
   skill: number;
   hasBall: boolean;
+  /** sim time until which the sprite does a brief impact jitter (tackle/daze/kick); 0 = none */
+  shakeUntilMs: number;
 }
 
 export interface GoalkeeperPlayer extends MatchPlayer {

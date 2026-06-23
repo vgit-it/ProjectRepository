@@ -1,4 +1,9 @@
-import { AOE_MULTIPLIER, DAZE_FREEZE_MAX_MS, DAZE_FREEZE_MIN_MS } from "../constants";
+import {
+  AOE_MULTIPLIER,
+  DAZE_FREEZE_MAX_MS,
+  DAZE_FREEZE_MIN_MS,
+  IMPACT_SHAKE_MS,
+} from "../constants";
 import type { GoalkeeperPlayer, MatchState, Projectile, Team } from "../types";
 import { distance } from "../vec";
 import { ITEM_DEFS } from "./items";
@@ -26,6 +31,7 @@ export function applyItemHit(
     // Both: stunned freezes movement/decisions; dazed keeps the overhead daze-stars marker.
     player.stunnedUntilMs = Math.max(player.stunnedUntilMs, until);
     player.dazedUntilMs = Math.max(player.dazedUntilMs, until);
+    player.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
     if (def.blinds && player.role === "GK") {
       const gk = player as GoalkeeperPlayer;
       gk.blindedUntilMs = Math.max(gk.blindedUntilMs, until);

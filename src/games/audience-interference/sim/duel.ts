@@ -2,6 +2,7 @@ import {
   DUEL_COOLDOWN_MS,
   DUEL_JITTER,
   DUEL_RADIUS,
+  IMPACT_SHAKE_MS,
   PICKUP_BLOCK_MS,
   STEAL_STUN_MS,
 } from "../constants";
@@ -54,6 +55,10 @@ export function resolveDuels(state: MatchState, nowMs: number): void {
   carrier.kickKind = null;
   carrier.kickTarget = null;
   carrier.runCommitUntilMs = 0;
+
+  // Brief impact jitter on both: the robbed carrier and the tackler who won the ball.
+  carrier.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
+  challenger.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
 
   const popOffDir = normalize({ x: Math.random() - 0.5, y: Math.random() - 0.5 });
   const popOffSpeed = POP_OFF_MIN_SPEED + Math.random() * (POP_OFF_MAX_SPEED - POP_OFF_MIN_SPEED);

@@ -4,6 +4,7 @@ import {
   CONTEST_RADIUS,
   CONTEST_WIN_BURST_M,
   DUEL_COOLDOWN_MS,
+  IMPACT_SHAKE_MS,
   PICKUP_BLOCK_MS,
 } from "../constants";
 import type { MatchPlayer, MatchState, Team, Vec2 } from "../types";
@@ -81,6 +82,10 @@ export function resolveContest(state: MatchState, nowMs: number): void {
 
     loser.vel = { x: 0, y: 0 };
     loser.stunnedUntilMs = nowMs + CONTEST_LOSER_STUN_MS;
+
+    // Brief impact jitter on both as the tussle breaks.
+    winner.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
+    loser.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
 
     ball.possessedBy = winner.id;
     ball.lastTouchedByTeam = winner.team;

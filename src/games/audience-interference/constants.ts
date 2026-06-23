@@ -42,6 +42,9 @@ export const BALL_GRAVITY = 22;
 export const LOFT_MIN_DIST = 18;
 /** How long (ms) a player is fully frozen after being dispossessed in a duel. */
 export const STEAL_STUN_MS = 1500;
+/** Duration (ms) of the brief per-player sprite jitter at an impact moment
+ * (tackle / daze / kick). Render-only; gated by prefers-reduced-motion. */
+export const IMPACT_SHAKE_MS = 220;
 
 // ---------- loose-ball tussle ----------
 // When the two chasers (one per team) both reach a loose ball, they freeze together
@@ -74,13 +77,13 @@ export const GOAL_LANE_WIDTH = 4;
 
 // ---------- goalkeeper saves ----------
 /** Delay (ms) before the keeper begins reacting to a shot. */
-export const GK_REACTION_MS = 250;
+export const GK_REACTION_MS = 320;
 /** Movement speed multiplier while the keeper is diving for a shot. */
-export const GK_DIVE_SPEED_MULT = 1.9;
+export const GK_DIVE_SPEED_MULT = 1.6;
 /** Distance (m) within which a reacting keeper attempts to catch the ball. */
-export const GK_CATCH_RADIUS = 3;
+export const GK_CATCH_RADIUS = 2.5;
 /** Single-roll probability the keeper catches when in range (not a guaranteed save). */
-export const GK_CATCH_PROB = 0.8;
+export const GK_CATCH_PROB = 0.6;
 /** How long (ms) the keeper holds the ball after a catch before distributing. */
 export const GK_HOLD_MS = 3000;
 /** After this (ms) a shot is no longer tracked as a live save situation. */

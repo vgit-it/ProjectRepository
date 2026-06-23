@@ -8,6 +8,7 @@ import {
   GOAL_WIDTH,
   GOAL_Y_MAX,
   GOAL_Y_MIN,
+  IMPACT_SHAKE_MS,
   KICK_WINDUP_MS,
   LOFT_MIN_DIST,
   PASS_SPEED,
@@ -98,6 +99,9 @@ function executeKick(player: MatchPlayer, state: MatchState, nowMs: number): voi
   const target = player.kickTarget;
   const kind = player.kickKind;
   if (!target || !kind) return;
+
+  // Kicking is an impact moment — give the kicker a brief sprite jolt.
+  player.shakeUntilMs = nowMs + IMPACT_SHAKE_MS;
 
   player.hasBall = false;
   ball.possessedBy = null;
