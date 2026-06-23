@@ -132,13 +132,9 @@ export const CAMERA_LOOK_AHEAD_M = 12;
 
 // ---------- throwing (M3) ----------
 
-/** Seconds to reach full charge (max power/accuracy) while holding THROW. */
-export const THROW_CHARGE_SEC = 0.9;
 /** Flight time scales with distance; clamps keep arcs readable. */
 export const THROW_MIN_FLIGHT_MS = 350;
 export const THROW_MAX_FLIGHT_MS = 1100;
-/** How fast the joystick drags the landing marker across the pitch (m/s). */
-export const AIM_MARKER_SPEED = 24;
 
 // Off-ball "home slot" formation: depth (0 = own goal line, 1 = opponent goal line)
 // and lane fraction (0..1 across the pitch height), plus how strongly each role

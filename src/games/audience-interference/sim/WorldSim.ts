@@ -25,9 +25,8 @@ export class WorldSim {
   update(intent: InputIntent, dtMs: number): void {
     this.match.update(dtMs);
     const now = this.match.nowMs;
-    const dtSec = dtMs / 1000;
 
-    const launched = updateSpectator(this.spectator, intent, now, dtSec);
+    const launched = updateSpectator(this.spectator, intent, now);
     if (launched) this.projectiles.push(launched);
 
     this.projectiles = stepProjectiles(this.projectiles, this.match.state, this.targetTeam, now);

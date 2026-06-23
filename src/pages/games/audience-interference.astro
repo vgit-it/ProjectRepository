@@ -2,9 +2,10 @@
 /**
  * audience-interference.astro — playable route for the Audience Interference game.
  *
- * You are a spectator in the stands: walk around with the joystick (the zoomed
- * follow-camera pans with you), hold THROW to aim a fan onto the pitch, release to
- * launch an item and daze the team you're sabotaging so the side you back wins.
+ * You are a spectator in the stands: hop around the ground with the ◀ ▶ buttons (or
+ * ←/→ · A/D — the zoomed follow-camera pans with you), then drag anywhere on the pitch
+ * like a slingshot to aim a thrown item and release to launch it, dazing the team you're
+ * sabotaging so the side you back wins.
  *
  * DEV PALETTE EXCEPTION (temporary, scoped to this page + src/games/audience-interference/
  * only): CLAUDE.md rule 4 reserves color for the Seal stamp and keeps everything else
@@ -194,47 +195,34 @@ import Shell from "@layouts/Shell.astro";
     inset: 0;
     pointer-events: none;
   }
-  :global(.ai-joystick) {
+  /* ◀ ▶ ring-hop buttons in the bottom corners; the whole pitch above is the aim
+     surface, so these stay small and out of the way. */
+  :global(.ai-move-left),
+  :global(.ai-move-right) {
     position: absolute;
     inset-block-end: 5%;
-    inset-inline-start: 4%;
-    width: clamp(90px, 22vw, 150px);
+    width: clamp(58px, 14vw, 92px);
     aspect-ratio: 1;
     border-radius: 50%;
-    background: rgba(120, 200, 220, 0.18);
-    border: 2px solid rgba(120, 200, 220, 0.5);
-    pointer-events: auto;
-    touch-action: none;
-  }
-  :global(.ai-knob) {
-    position: absolute;
-    inset: 30%;
-    border-radius: 50%;
-    background: rgba(150, 220, 240, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    will-change: transform;
-  }
-  :global(.ai-throw) {
-    position: absolute;
-    inset-block-end: 6%;
-    inset-inline-end: 4%;
-    width: clamp(80px, 20vw, 130px);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: rgba(120, 200, 220, 0.85);
-    color: #10222b;
-    border: 3px solid rgba(255, 255, 255, 0.7);
-    font-weight: 800;
-    font-size: clamp(0.9rem, 2.6vw, 1.2rem);
-    letter-spacing: 0.05em;
+    background: rgba(120, 200, 220, 0.2);
+    border: 2px solid rgba(120, 200, 220, 0.55);
+    color: #eafaff;
+    font-size: clamp(1.1rem, 3.2vw, 1.7rem);
+    line-height: 1;
     pointer-events: auto;
     cursor: pointer;
     touch-action: none;
   }
-  :global(.ai-throw.is-held) {
-    background: #ff3db5;
-    color: #fff;
-    transform: scale(0.96);
+  :global(.ai-move-left) {
+    inset-inline-start: 4%;
+  }
+  :global(.ai-move-right) {
+    inset-inline-end: 4%;
+  }
+  :global(.ai-move-left.is-held),
+  :global(.ai-move-right.is-held) {
+    background: rgba(120, 200, 220, 0.45);
+    transform: scale(0.94);
   }
   :global(.ai-items) {
     position: absolute;
