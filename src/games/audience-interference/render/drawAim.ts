@@ -8,8 +8,8 @@ import type { Renderer } from "./Renderer";
 const AIM_COLOR = "#ff3db5";
 const RANGE_SAMPLES = 36; // polyline segments approximating the range-limit ring
 
-/** The pink "THROW UI": a faint range-limit ring around the player and a landing
- * marker (reticle) that the joystick drags around inside it. */
+/** The pink slingshot UI: a faint range-limit ring around the player, a power band
+ * stretching to the landing marker, and the reticle the drag points at. */
 export function drawAim(renderer: Renderer, spec: Spectator, nowMs: number): void {
   if (!spec.aiming) return;
   const { ctx } = renderer;
@@ -37,11 +37,14 @@ export function drawAim(renderer: Renderer, spec: Spectator, nowMs: number): voi
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // thin line from the player to the marker
+  // slingshot band from the player to the marker: thickens + brightens with the
+  // throw's reach (spec.charge, 0..1) so it reads as a stretched, charging band.
+  const power = spec.charge;
   const op = renderer.project(origin);
   const tp = renderer.project(target);
-  ctx.globalAlpha = 0.55 * pulse;
-  ctx.lineWidth = Math.max(1.5, 0.25 * tp.scale);
+  ctx.globalAlpha = (0.4 + 0.45 * power) * pulse;
+  ctx.lineWidth = Math.max(1.5, (0.2 + 0.5 * power) * tp.scale);
+  ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(op.x, op.y);
   ctx.lineTo(tp.x, tp.y);

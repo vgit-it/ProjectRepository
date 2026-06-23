@@ -3,51 +3,52 @@ import { ITEM_DEFS, ITEM_ORDER } from "../sim/items";
 
 export interface ControlsConfig {
   canvas: HTMLCanvasElement;
-  /** container the on-screen joystick / throw / item buttons are built into */
+  /** container the on-screen move / item buttons are built into */
   root: HTMLElement;
-  /** current spectator position in CSS pixels, for desktop mouse aiming */
-  getSpectatorScreen: () => Vec2;
+  /** maps a CSS-pixel pointer position (relative to the canvas) to a world point */
+  screenToWorld: (css: Vec2) => Vec2;
   /** notified when the held item changes, so the HUD can reflect it */
   onItemChange?: (item: ItemId) => void;
 }
 
-/** Unifies touch (virtual joystick + THROW + item buttons) and desktop
- * (WASD/arrows + mouse aim + number keys) into a single InputIntent. */
+/** Lift the reticle this many CSS px above a touch point so the fingertip doesn't
+ * cover it. Mouse aiming is exact (cursor is a point) and gets no offset. */
+const TOUCH_AIM_OFFSET_PX = 60;
+
+/** Unifies touch and desktop into one InputIntent:
+ *  - move: on-screen ◀ ▶ buttons or ←/→ + A/D hop around the perch ring
+ *  - aim/throw: a single slingshot drag anywhere on the pitch (pointer events cover
+ *    both mouse and touch) — press to aim, drag to point, release to launch. */
 export class InputController {
   private keys = new Set<string>();
 
-  private joyVec: Vec2 = { x: 0, y: 0 };
-  private joyPointer: number | null = null;
-  private joyCenter: Vec2 = { x: 0, y: 0 };
-  private joyRadius = 50;
+  /** ring direction held via the on-screen buttons (keyboard is folded in at read()) */
+  private btnDir: -1 | 0 | 1 = 0;
 
-  private throwHeld = false; // virtual THROW button
-  private mouseAimHeld = false; // desktop mouse aim
-  private mouseCss: Vec2 = { x: 0, y: 0 };
+  private aiming = false;
+  private aimPoint: Vec2 = { x: 0, y: 0 };
+  private aimPointerId: number | null = null;
   private throwReleased = false;
 
   private selectedItem: ItemId = "popcorn";
 
-  private knob!: HTMLElement;
   private itemButtons = new Map<ItemId, HTMLElement>();
   private cleanups: Array<() => void> = [];
 
   constructor(private readonly cfg: ControlsConfig) {
     this.buildDom();
     this.attachKeyboard();
-    this.attachMouse();
+    this.attachAim();
   }
 
   read(): InputIntent {
-    const aiming = this.throwHeld || this.mouseAimHeld;
-    const aimVector = aiming ? this.computeAim() : { x: 0, y: 0 };
-    const move = aiming ? { x: 0, y: 0 } : this.combinedMove();
+    const moveDir = this.aiming ? 0 : this.combinedMoveDir();
     const released = this.throwReleased;
     this.throwReleased = false;
     return {
-      move,
-      aiming,
-      aimVector,
+      moveDir,
+      aiming: this.aiming,
+      aimPoint: this.aimPoint,
       throwReleased: released,
       ducking: this.keys.has("shift"),
       selectedItem: this.selectedItem,
@@ -59,28 +60,14 @@ export class InputController {
     this.cleanups = [];
   }
 
-  // ---------- aim / move resolution ----------
+  // ---------- move direction ----------
 
-  /** Analog vector (magnitude <= 1) that drags the landing marker while aiming. */
-  private computeAim(): Vec2 {
-    if (this.mouseAimHeld) {
-      // desktop: push the marker toward the cursor, faster the farther it is
-      const s = this.cfg.getSpectatorScreen();
-      return clampLen({ x: (this.mouseCss.x - s.x) / 120, y: (this.mouseCss.y - s.y) / 120 }, 1);
-    }
-    // touch: joystick directly drives the marker (already magnitude <= 1)
-    return this.joyVec;
-  }
-
-  private combinedMove(): Vec2 {
-    let x = this.joyVec.x;
-    let y = this.joyVec.y;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) x -= 1;
-    if (this.keys.has("d") || this.keys.has("arrowright")) x += 1;
-    if (this.keys.has("w") || this.keys.has("arrowup")) y -= 1;
-    if (this.keys.has("s") || this.keys.has("arrowdown")) y += 1;
-    const len = Math.hypot(x, y);
-    return len > 1 ? { x: x / len, y: y / len } : { x, y };
+  private combinedMoveDir(): -1 | 0 | 1 {
+    if (this.btnDir !== 0) return this.btnDir;
+    const left = this.keys.has("arrowleft") || this.keys.has("a");
+    const right = this.keys.has("arrowright") || this.keys.has("d");
+    if (left === right) return 0; // none or both -> hold
+    return left ? -1 : 1;
   }
 
   private selectItem(item: ItemId): void {
@@ -89,20 +76,11 @@ export class InputController {
     this.cfg.onItemChange?.(item);
   }
 
-  // ---------- DOM controls ----------
+  // ---------- DOM controls (move + item buttons) ----------
 
   private buildDom(): void {
-    const joy = document.createElement("div");
-    joy.className = "ai-joystick";
-    const knob = document.createElement("div");
-    knob.className = "ai-knob";
-    joy.appendChild(knob);
-    this.knob = knob;
-
-    const throwBtn = document.createElement("button");
-    throwBtn.type = "button";
-    throwBtn.className = "ai-throw";
-    throwBtn.textContent = "THROW";
+    const left = this.makeMoveButton("ai-move-left", "◀", -1);
+    const right = this.makeMoveButton("ai-move-right", "▶", 1);
 
     const items = document.createElement("div");
     items.className = "ai-items";
@@ -118,66 +96,37 @@ export class InputController {
       items.appendChild(b);
     }
 
-    this.cfg.root.append(joy, items, throwBtn);
+    this.cfg.root.append(left, right, items);
     this.selectItem("popcorn");
 
-    // joystick pointer handling
-    const onJoyDown = (e: PointerEvent) => {
-      this.joyPointer = e.pointerId;
-      const rect = joy.getBoundingClientRect();
-      this.joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      this.joyRadius = rect.width / 2;
-      joy.setPointerCapture(e.pointerId);
-      this.updateJoy(e.clientX, e.clientY);
-      e.preventDefault();
-    };
-    const onJoyMove = (e: PointerEvent) => {
-      if (e.pointerId !== this.joyPointer) return;
-      this.updateJoy(e.clientX, e.clientY);
-    };
-    const onJoyUp = (e: PointerEvent) => {
-      if (e.pointerId !== this.joyPointer) return;
-      this.joyPointer = null;
-      this.joyVec = { x: 0, y: 0 };
-      this.knob.style.transform = "translate(0px, 0px)";
-    };
-    joy.addEventListener("pointerdown", onJoyDown);
-    joy.addEventListener("pointermove", onJoyMove);
-    joy.addEventListener("pointerup", onJoyUp);
-    joy.addEventListener("pointercancel", onJoyUp);
-
-    // throw button
-    const onThrowDown = (e: PointerEvent) => {
-      this.throwHeld = true;
-      throwBtn.classList.add("is-held");
-      e.preventDefault();
-    };
-    const onThrowUp = () => {
-      if (this.throwHeld) this.throwReleased = true;
-      this.throwHeld = false;
-      throwBtn.classList.remove("is-held");
-    };
-    throwBtn.addEventListener("pointerdown", onThrowDown);
-    throwBtn.addEventListener("pointerup", onThrowUp);
-    throwBtn.addEventListener("pointercancel", onThrowUp);
-    throwBtn.addEventListener("pointerleave", onThrowUp);
-
     this.cleanups.push(() => {
-      joy.remove();
+      left.remove();
+      right.remove();
       items.remove();
-      throwBtn.remove();
     });
   }
 
-  private updateJoy(clientX: number, clientY: number): void {
-    const dx = clientX - this.joyCenter.x;
-    const dy = clientY - this.joyCenter.y;
-    const len = Math.hypot(dx, dy);
-    const clamped = Math.min(len, this.joyRadius);
-    const ux = len > 0 ? dx / len : 0;
-    const uy = len > 0 ? dy / len : 0;
-    this.joyVec = { x: (ux * clamped) / this.joyRadius, y: (uy * clamped) / this.joyRadius };
-    this.knob.style.transform = `translate(${ux * clamped}px, ${uy * clamped}px)`;
+  /** A press-and-hold ring-hop button. Holding repeats via the sim's PERCH_STEP_MS. */
+  private makeMoveButton(className: string, glyph: string, dir: -1 | 1): HTMLElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = className;
+    btn.textContent = glyph;
+    const press = (e: PointerEvent) => {
+      this.btnDir = dir;
+      btn.classList.add("is-held");
+      btn.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    };
+    const release = () => {
+      if (this.btnDir === dir) this.btnDir = 0;
+      btn.classList.remove("is-held");
+    };
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("pointerleave", release);
+    return btn;
   }
 
   // ---------- keyboard ----------
@@ -201,41 +150,54 @@ export class InputController {
     });
   }
 
-  // ---------- desktop mouse aim on the canvas ----------
+  // ---------- slingshot aim on the canvas (mouse + touch via pointer events) ----------
 
-  private attachMouse(): void {
+  private attachAim(): void {
     const { canvas } = this.cfg;
-    const toCss = (e: PointerEvent): Vec2 => {
+
+    const toWorld = (e: PointerEvent): Vec2 => {
       const rect = canvas.getBoundingClientRect();
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const offsetY = e.pointerType === "mouse" ? 0 : TOUCH_AIM_OFFSET_PX;
+      return this.cfg.screenToWorld({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top - offsetY,
+      });
     };
+
     const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      this.mouseAimHeld = true;
-      this.mouseCss = toCss(e);
+      if (this.aimPointerId !== null) return; // ignore extra fingers mid-drag
+      this.aimPointerId = e.pointerId;
+      this.aiming = true;
+      this.aimPoint = toWorld(e);
+      canvas.setPointerCapture(e.pointerId);
+      e.preventDefault();
     };
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      this.mouseCss = toCss(e);
+      if (e.pointerId !== this.aimPointerId) return;
+      this.aimPoint = toWorld(e);
     };
     const onUp = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      if (this.mouseAimHeld) this.throwReleased = true;
-      this.mouseAimHeld = false;
+      if (e.pointerId !== this.aimPointerId) return;
+      this.aimPoint = toWorld(e);
+      this.aimPointerId = null;
+      this.aiming = false;
+      this.throwReleased = true;
     };
+    const onCancel = (e: PointerEvent) => {
+      if (e.pointerId !== this.aimPointerId) return;
+      this.aimPointerId = null;
+      this.aiming = false; // no throw on a cancelled gesture
+    };
+
     canvas.addEventListener("pointerdown", onDown);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointercancel", onCancel);
     this.cleanups.push(() => {
       canvas.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+      canvas.removeEventListener("pointermove", onMove);
+      canvas.removeEventListener("pointerup", onUp);
+      canvas.removeEventListener("pointercancel", onCancel);
     });
   }
-}
-
-/** Clamp a vector's magnitude to at most `max`, leaving shorter vectors untouched. */
-function clampLen(v: Vec2, max: number): Vec2 {
-  const len = Math.hypot(v.x, v.y);
-  return len > max ? { x: (v.x / len) * max, y: (v.y / len) * max } : v;
 }

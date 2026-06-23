@@ -48,6 +48,13 @@ export class Renderer {
     return { x: sp.x, y: sp.y };
   }
 
+  /** Inverse: a CSS-pixel pointer position (relative to the canvas box) to a world
+   * point. Scales by devicePixelRatio to match the camera's device-pixel space. */
+  unproject(cssX: number, cssY: number): Vec2 {
+    const dpr = window.devicePixelRatio || 1;
+    return this.camera.unproject(cssX * dpr, cssY * dpr);
+  }
+
   clear(): void {
     this.ctx.fillStyle = "#111317";
     this.ctx.fillRect(0, 0, this.widthPx, this.heightPx);

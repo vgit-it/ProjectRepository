@@ -1,5 +1,4 @@
 import {
-  AIM_MARKER_SPEED,
   PERCH_PER_HORIZONTAL,
   PERCH_PER_VERTICAL,
   PERCH_STEP_MS,
@@ -7,12 +6,11 @@ import {
   PITCH_WIDTH,
   STAND_BAND_M,
   STAND_INSET_M,
-  THROW_CHARGE_SEC,
   THROW_MAX_FLIGHT_MS,
   THROW_MIN_FLIGHT_MS,
 } from "../constants";
 import type { InputIntent, Projectile, Spectator, Vec2 } from "../types";
-import { add, length, normalize, scale, sub } from "../vec";
+import { add, length, scale, sub } from "../vec";
 import { ITEM_DEFS } from "./items";
 
 const PITCH_CENTER: Vec2 = { x: PITCH_WIDTH / 2, y: PITCH_HEIGHT / 2 };
@@ -101,74 +99,41 @@ export function updateSpectator(
   spec: Spectator,
   intent: InputIntent,
   nowMs: number,
-  dtSec: number,
 ): Projectile | null {
   spec.heldItem = intent.selectedItem;
   spec.ducking = intent.ducking;
 
   const toCenter = sub(PITCH_CENTER, spec.pos);
   spec.facing = Math.atan2(toCenter.y, toCenter.x);
-  const forward = normalize(toCenter);
   const origin = clampToPitch(spec.pos);
   const range = ITEM_DEFS[spec.heldItem].range;
 
-  const wasAiming = spec.aiming;
   spec.aiming = intent.aiming;
   if (intent.aiming) {
-    // charging a throw: drag the landing marker with the stick, don't hop perches
-    spec.charge = Math.min(1, spec.charge + dtSec / THROW_CHARGE_SEC);
-    if (!wasAiming) {
-      // seed the marker a sensible distance into the pitch in front of the player
-      const reach = Math.min(range * 0.55, length(toCenter));
-      spec.aimTarget = clampToPitch(add(origin, scale(forward, reach)));
-    }
-    // translate by the analog stick vector, then clamp to range + pitch
-    spec.aimTarget = add(spec.aimTarget, scale(intent.aimVector, AIM_MARKER_SPEED * dtSec));
-    spec.aimTarget = clampToRange(spec.aimTarget, origin, range);
-    spec.aimTarget = clampToPitch(spec.aimTarget);
+    // Slingshot: the reticle is the point the player is touching (already in world
+    // space), clamped to the item's reach and the pitch. No drift, no hopping.
+    spec.aimTarget = clampToPitch(clampToRange(intent.aimPoint, origin, range));
+    // Power == how far we're reaching, 0..1; drives the slingshot-band visual.
+    spec.charge = range > 0 ? Math.min(1, length(sub(spec.aimTarget, origin)) / range) : 0;
   } else {
-    stepPerch(spec, intent.move, nowMs);
+    stepRing(spec, intent.moveDir, nowMs);
   }
 
   if (intent.throwReleased) {
-    // throw to wherever the marker sits; a bare tap (no aiming frame) lands in front
-    const target = wasAiming
-      ? spec.aimTarget
-      : clampToPitch(add(origin, scale(forward, range * 0.55)));
-    const proj = tryThrow(spec, origin, target, nowMs);
+    const proj = tryThrow(spec, origin, spec.aimTarget, nowMs);
     spec.charge = 0;
     return proj;
   }
   return null;
 }
 
-/** Hop to an adjacent ring perch when the input direction lines up with a neighbor. */
-function stepPerch(spec: Spectator, move: Vec2, nowMs: number): void {
-  if (nowMs < spec.nextStepAtMs) return;
-  const mag = length(move);
-  if (mag < 0.4) return;
-
+/** Hop one perch around the ring per `PERCH_STEP_MS`; dir -1 = CCW (prev), +1 = CW. */
+function stepRing(spec: Spectator, dir: number, nowMs: number): void {
+  if (dir === 0 || nowMs < spec.nextStepAtMs) return;
   const perches = buildPerches();
   const n = perches.length;
-  const dir = scale(move, 1 / mag);
-  const cur = perches[spec.perchIndex];
-  const prev = (spec.perchIndex - 1 + n) % n;
-  const next = (spec.perchIndex + 1) % n;
-
-  let bestIndex = -1;
-  let bestDot = 0.35; // require reasonable alignment to move
-  for (const cand of [prev, next]) {
-    const toCand = normalize(sub(perches[cand], cur));
-    const dot = toCand.x * dir.x + toCand.y * dir.y;
-    if (dot > bestDot) {
-      bestDot = dot;
-      bestIndex = cand;
-    }
-  }
-  if (bestIndex === -1) return;
-
-  spec.perchIndex = bestIndex;
-  spec.pos = { ...perches[bestIndex] };
+  spec.perchIndex = (spec.perchIndex + (dir > 0 ? 1 : -1) + n) % n;
+  spec.pos = { ...perches[spec.perchIndex] };
   spec.nextStepAtMs = nowMs + PERCH_STEP_MS;
 }
 

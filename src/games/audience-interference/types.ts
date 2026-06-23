@@ -140,11 +140,11 @@ export interface Spectator {
   nextStepAtMs: number;
   heldItem: ItemId;
   itemCooldowns: Record<ItemId, number>;
-  /** true while THROW is held: aiming/charging a throw */
+  /** true while a slingshot drag is in progress (aiming a throw) */
   aiming: boolean;
-  /** world-space landing point the joystick drags around while aiming */
+  /** world-space landing point under the slingshot drag */
   aimTarget: Vec2;
-  /** 0..1 charge built up while aiming; drives the marker pulse */
+  /** 0..1 throw power == how far the reticle reaches; drives the slingshot band */
   charge: number;
 }
 
@@ -211,9 +211,11 @@ export interface SuspicionState {
 // ---------- input intent (shared desktop+mobile, M2+) ----------
 
 export interface InputIntent {
-  move: Vec2;
+  /** ring traversal this frame: -1 = CCW (prev perch), +1 = CW (next perch), 0 = hold */
+  moveDir: -1 | 0 | 1;
   aiming: boolean;
-  aimVector: Vec2;
+  /** absolute world-space landing target while aiming (already screen->world) */
+  aimPoint: Vec2;
   throwReleased: boolean;
   ducking: boolean;
   selectedItem: ItemId;
