@@ -32,6 +32,18 @@ export interface GoalkeeperPlayer extends MatchPlayer {
   lineSegment: { a: Vec2; b: Vec2 };
 }
 
+/** An in-progress loose-ball tussle: both players (one per team) are frozen over the
+ * ball until `resolveAtMs`, when a skill-weighted random roll picks the winner, who
+ * surges off along his captured approach direction. */
+export interface BallContest {
+  aId: string;
+  bId: string;
+  resolveAtMs: number;
+  /** approach/facing directions captured at start (vel is zeroed during the freeze) */
+  aDir: Vec2;
+  bDir: Vec2;
+}
+
 export interface Ball {
   pos: Vec2;
   vel: Vec2;
@@ -50,6 +62,8 @@ export interface Ball {
   lastDuelAtMs: number;
   /** sim time the ball stays frozen (dead-ball/celebration pause); 0 = not frozen */
   freezeUntilMs: number;
+  /** active loose-ball tussle, or null when the ball isn't being contested */
+  contest: BallContest | null;
 }
 
 export type MatchPhase = "FIRST_HALF" | "HALFTIME" | "SECOND_HALF" | "FULL_TIME";

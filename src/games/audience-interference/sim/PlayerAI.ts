@@ -5,10 +5,9 @@ import {
   PASS_SPEED,
   PITCH_HEIGHT,
   PITCH_WIDTH,
-  PRESS_RADIUS,
   SHOT_SPEED,
 } from "../constants";
-import type { MatchPlayer, MatchState, Vec2 } from "../types";
+import type { MatchPlayer, MatchState, Team, Vec2 } from "../types";
 import { add, distance, length, normalize, scale, sub } from "../vec";
 import { countBlockers, decideOnBallAction, type OnBallAction, PASS_LANE_WIDTH } from "./decisions";
 import { computeDribbleTarget, computeHomeSlot } from "./movement";
@@ -59,31 +58,31 @@ function executeOnBallAction(player: MatchPlayer, action: OnBallAction, state: M
   }
 }
 
-/** Closest player (either team) to a loose ball, or null if the ball is held. Forcing this player
- * into PRESS regardless of PRESS_RADIUS guarantees someone always closes in on a stray ball — the
- * home-slot formation is otherwise a stable equilibrium that can leave a ball sitting forever in a
- * gap nobody's individual press radius reaches. */
-export function findNearestToLooseBall(state: MatchState): string | null {
+/** Per-team nearest outfield (non-GK) player to the ball, regardless of possession.
+ * Exactly one player per team chases the ball; everyone else holds shape, so the pitch
+ * stays spread out and a loose ball draws just one challenger from each side (which sets
+ * up the one-v-one tussle in contest.ts). Computed even while the ball is held so the
+ * defending team always has a designated presser closing on the carrier. */
+export function findNearestPerTeam(state: MatchState): Record<Team, string | null> {
   const { ball } = state;
-  if (ball.possessedBy) return null;
-
-  let nearestId: string | null = null;
-  let nearestDist = Infinity;
+  const nearest: Record<Team, string | null> = { home: null, away: null };
+  const nearestDist: Record<Team, number> = { home: Infinity, away: Infinity };
   for (const p of state.players) {
+    if (p.role === "GK") continue;
     const d = distance(p.pos, ball.pos);
-    if (d < nearestDist) {
-      nearestDist = d;
-      nearestId = p.id;
+    if (d < nearestDist[p.team]) {
+      nearestDist[p.team] = d;
+      nearest[p.team] = p.id;
     }
   }
-  return nearestId;
+  return nearest;
 }
 
 /** Per-player decision tick (~300ms cadence, driven by MatchSim) for the 12 non-GK players. */
 export function updateOutfieldPlayer(
   player: MatchPlayer,
   state: MatchState,
-  nearestToLooseBallId: string | null,
+  nearestPerTeam: Record<Team, string | null>,
 ): void {
   const { ball } = state;
 
@@ -104,7 +103,8 @@ export function updateOutfieldPlayer(
     }
   }
 
-  if (player.id === nearestToLooseBallId || distance(player.pos, ball.pos) < PRESS_RADIUS) {
+  // Only this team's single closest player breaks toward the ball; the rest hold shape.
+  if (player.id === nearestPerTeam[player.team]) {
     player.aiState = "PRESS";
     player.moveTarget = { ...ball.pos };
     return;

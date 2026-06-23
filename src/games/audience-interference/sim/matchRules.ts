@@ -33,12 +33,14 @@ function resetForKickoff(
   ball.pickupBlockedUntilMs = 0;
   ball.lastDuelAtMs = 0;
   ball.freezeUntilMs = nowMs + freezeMs;
+  ball.contest = null;
 
   for (const player of state.players) {
     player.pos = computeHomeSlot(player, player.slotIndex, ball);
     player.vel = { x: 0, y: 0 };
     player.hasBall = false;
     player.aiState = "HOLD_SHAPE";
+    player.stunnedUntilMs = 0;
   }
 
   const carrier = state.players.find(
@@ -76,6 +78,7 @@ function awardOutOfBounds(state: MatchState, nowMs: number): void {
   ball.pickupBlockedFor = null;
   ball.pickupBlockedUntilMs = 0;
   ball.freezeUntilMs = nowMs + DEAD_BALL_FREEZE_MS;
+  ball.contest = null;
 
   if (nearest) {
     nearest.hasBall = true;
