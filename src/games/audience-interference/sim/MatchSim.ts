@@ -14,7 +14,7 @@ import { resolveDuels } from "./duel";
 import { maybeClearBall, updateGoalkeeper } from "./goalkeeper";
 import { applyBallBoundaryEvent, resetForHalfStart } from "./matchRules";
 import { stepMovement } from "./movement";
-import { findNearestPerTeam, updateOutfieldPlayer } from "./PlayerAI";
+import { findNearestPerTeam, resolveWindups, updateOutfieldPlayer } from "./PlayerAI";
 
 let nextPlayerId = 0;
 
@@ -31,6 +31,10 @@ function createPlayer(team: Team, slotIndex: number): MatchPlayer {
     aiState: "HOLD_SHAPE",
     dazedUntilMs: 0,
     stunnedUntilMs: 0,
+    runCommitUntilMs: 0,
+    kickKind: null,
+    kickReleaseAtMs: 0,
+    kickTarget: null,
     skill: 0.55 + Math.random() * 0.3,
     hasBall: false,
   };
@@ -110,7 +114,7 @@ export class MatchSim {
       for (const player of this.state.players) {
         // A stunned (just-dispossessed) player makes no decisions until they recover.
         if (nowMs < player.stunnedUntilMs) continue;
-        if (player.role !== "GK") updateOutfieldPlayer(player, this.state, nearestPerTeam);
+        if (player.role !== "GK") updateOutfieldPlayer(player, this.state, nearestPerTeam, nowMs);
       }
     }
 
@@ -131,6 +135,10 @@ export class MatchSim {
         nowMs < player.stunnedUntilMs ? 0 : nowMs < player.dazedUntilMs ? 0.35 : 1;
       stepMovement(player, dtSec, speedMultiplier);
     }
+
+    // Fire any pre-kick wind-ups whose timer elapsed before the ball integrates, so a
+    // released pass/shot moves the same frame.
+    resolveWindups(this.state, nowMs);
 
     const event = stepBallPhysics(this.state, dtSec, nowMs);
     resolveDuels(this.state, nowMs);

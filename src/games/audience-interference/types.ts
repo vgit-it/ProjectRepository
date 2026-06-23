@@ -21,6 +21,14 @@ export interface MatchPlayer {
   dazedUntilMs: number;
   /** sim time until which the player is fully frozen (e.g. just dispossessed); 0 = active */
   stunnedUntilMs: number;
+  /** while held: keep the committed run until this sim time before re-deciding; 0 = re-decide */
+  runCommitUntilMs: number;
+  /** a queued kick currently winding up (idle-frame hold), or null when not kicking */
+  kickKind: "pass" | "shoot" | null;
+  /** sim time the queued kick fires (end of the wind-up) */
+  kickReleaseAtMs: number;
+  /** target point snapshot for the queued kick (receiver pos incl. wobble, or goal aim) */
+  kickTarget: Vec2 | null;
   /** baseline ability roll input: used in duels and pass/shot accuracy */
   skill: number;
   hasBall: boolean;

@@ -4,8 +4,6 @@ import { distanceToSegment, length, sub } from "../vec";
 
 const SHOT_LANE_WIDTH = 3;
 export const PASS_LANE_WIDTH = 2.5;
-// Arcade feel: holding the ball is a weak default so a viable pass usually wins out.
-const DRIBBLE_BASE_SCORE = 0.2;
 
 function goalCenter(player: MatchPlayer): Vec2 {
   return { x: player.team === "home" ? PITCH_WIDTH : 0, y: PITCH_HEIGHT / 2 };
@@ -57,39 +55,22 @@ export function scorePass(
   return laneOpenness * 0.45 + forwardProgress * 0.35 + distScore * 0.2;
 }
 
-export function scoreDribble(): number {
-  return DRIBBLE_BASE_SCORE;
-}
-
-export type OnBallAction =
-  | { kind: "shoot" }
-  | { kind: "pass"; target: MatchPlayer }
-  | { kind: "dribble" };
-
-export function decideOnBallAction(
+/** The teammate with the highest pass score (lane openness + forward progress + range),
+ * or null if there are no teammates. The carrier-decision logic in PlayerAI uses this to
+ * pick a receiver once it has decided to pass. */
+export function bestPassTarget(
   player: MatchPlayer,
   teammates: MatchPlayer[],
   opponents: MatchPlayer[],
-): OnBallAction {
-  const shotScore = scoreShoot(player, opponents);
-
-  let bestPassScore = -Infinity;
-  let bestPassTarget: MatchPlayer | null = null;
+): MatchPlayer | null {
+  let bestScore = -Infinity;
+  let best: MatchPlayer | null = null;
   for (const mate of teammates) {
     const s = scorePass(player, mate, opponents);
-    if (s > bestPassScore) {
-      bestPassScore = s;
-      bestPassTarget = mate;
+    if (s > bestScore) {
+      bestScore = s;
+      best = mate;
     }
   }
-
-  const dribbleScore = scoreDribble();
-
-  if (shotScore >= bestPassScore && shotScore >= dribbleScore) {
-    return { kind: "shoot" };
-  }
-  if (bestPassTarget && bestPassScore >= dribbleScore) {
-    return { kind: "pass", target: bestPassTarget };
-  }
-  return { kind: "dribble" };
+  return best;
 }
