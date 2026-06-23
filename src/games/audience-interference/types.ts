@@ -72,6 +72,27 @@ export interface Ball {
   freezeUntilMs: number;
   /** active loose-ball tussle, or null when the ball isn't being contested */
   contest: BallContest | null;
+  /** an in-flight shot on goal the defending keeper can react to, or null */
+  shot: ShotOnGoal | null;
+  /** keeper is holding after a catch (players return to shape) until this sim time; 0 = none */
+  gkHoldUntilMs: number;
+}
+
+/** A shot on goal that a keeper may dive for. `team` is the shooter's team. */
+export interface ShotOnGoal {
+  team: Team;
+  /** aimed y on the target goal line */
+  targetY: number;
+  /** sim time the shot was struck (for the keeper reaction delay) */
+  atMs: number;
+  /** true once the keeper has rolled their single save attempt */
+  attempted: boolean;
+}
+
+/** A one-shot gameplay event the renderer turns into juice (shake / impact FX). */
+export interface GameEvent {
+  kind: "hit" | "goal" | "save" | "steal" | "shot";
+  pos?: Vec2;
 }
 
 export type MatchPhase = "FIRST_HALF" | "HALFTIME" | "SECOND_HALF" | "FULL_TIME";
@@ -89,6 +110,8 @@ export interface MatchState {
   score: { home: number; away: number };
   players: MatchPlayer[];
   ball: Ball;
+  /** one-shot events emitted this tick; drained by the renderer for juice/FX */
+  events: GameEvent[];
 }
 
 // ---------- stands / seat geometry (M2) ----------

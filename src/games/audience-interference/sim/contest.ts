@@ -17,15 +17,19 @@ const GROUND_HEIGHT = 0.6;
  * the surge direction before steering toward the burst target takes over. */
 const BURST_SPEED = 4;
 
-/** Nearest outfield player on a team to the ball, with its distance. */
+/** Nearest eligible outfield player on a team to the ball, with its distance. Frozen
+ * players (e.g. a just-beaten loser still serving their stun) are skipped so they can't
+ * be dragged into a fresh tussle until they recover. */
 function nearestOutfield(
   state: MatchState,
   team: Team,
+  nowMs: number,
 ): { player: MatchPlayer | null; dist: number } {
   let player: MatchPlayer | null = null;
   let dist = Infinity;
   for (const p of state.players) {
     if (p.role === "GK" || p.team !== team) continue;
+    if (nowMs < p.stunnedUntilMs) continue;
     const d = distance(p.pos, state.ball.pos);
     if (d < dist) {
       dist = d;
@@ -87,6 +91,7 @@ export function resolveContest(state: MatchState, nowMs: number): void {
     ball.pickupBlockedFor = loser.id;
     ball.pickupBlockedUntilMs = nowMs + PICKUP_BLOCK_MS;
     ball.lastDuelAtMs = nowMs + DUEL_COOLDOWN_MS;
+    state.events.push({ kind: "steal", pos: { ...ball.pos } });
     return;
   }
 
@@ -95,8 +100,8 @@ export function resolveContest(state: MatchState, nowMs: number): void {
   if (nowMs < ball.freezeUntilMs) return;
   if (ball.z > GROUND_HEIGHT) return; // a lofted ball isn't contestable until it drops
 
-  const home = nearestOutfield(state, "home");
-  const away = nearestOutfield(state, "away");
+  const home = nearestOutfield(state, "home", nowMs);
+  const away = nearestOutfield(state, "away", nowMs);
   if (!home.player || !away.player) return;
   if (home.dist > CONTEST_RADIUS || away.dist > CONTEST_RADIUS) return;
 

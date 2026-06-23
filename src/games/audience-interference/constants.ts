@@ -52,8 +52,9 @@ export const CONTEST_RADIUS = 2.4;
 export const CONTEST_HOLD_MS = 700;
 /** How far (m) the winner surges forward with the ball after winning the tussle. */
 export const CONTEST_WIN_BURST_M = 4;
-/** How long (ms) the loser is frozen after losing the tussle. */
-export const CONTEST_LOSER_STUN_MS = 5000;
+/** How long (ms) the loser is frozen after losing the tussle. While frozen they are
+ * also excluded from new tussles/tackles, so this doubles as a no-fight lockout. */
+export const CONTEST_LOSER_STUN_MS = 3000;
 
 // ---------- ball-carrier decisions ----------
 // The carrier commits to run/pass/shoot and sticks with it for a few seconds rather
@@ -70,6 +71,27 @@ export const CARRIER_PANIC_M = 4;
 export const FINAL_THIRD_FRAC = 2 / 3;
 /** Lane width (m) toward goal that must be blocker-free to count as "clear space". */
 export const GOAL_LANE_WIDTH = 4;
+
+// ---------- goalkeeper saves ----------
+/** Delay (ms) before the keeper begins reacting to a shot. */
+export const GK_REACTION_MS = 250;
+/** Movement speed multiplier while the keeper is diving for a shot. */
+export const GK_DIVE_SPEED_MULT = 1.9;
+/** Distance (m) within which a reacting keeper attempts to catch the ball. */
+export const GK_CATCH_RADIUS = 3;
+/** Single-roll probability the keeper catches when in range (not a guaranteed save). */
+export const GK_CATCH_PROB = 0.8;
+/** How long (ms) the keeper holds the ball after a catch before distributing. */
+export const GK_HOLD_MS = 3000;
+/** After this (ms) a shot is no longer tracked as a live save situation. */
+export const SHOT_ACTIVE_MAX_MS = 2500;
+
+// ---------- thrown items ----------
+/** Impact radius multiplier applied on top of each item's base AoE. */
+export const AOE_MULTIPLIER = 2;
+/** A hit freezes the target for a random duration in this range (ms). */
+export const DAZE_FREEZE_MIN_MS = 4000;
+export const DAZE_FREEZE_MAX_MS = 8000;
 
 export const DEAD_BALL_FREEZE_MS = 700;
 export const GOAL_CELEBRATION_FREEZE_MS = 2200;

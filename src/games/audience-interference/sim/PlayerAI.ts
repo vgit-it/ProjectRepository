@@ -93,7 +93,7 @@ function chooseCarrierDecision(
 }
 
 /** Releases the ball for a queued pass/shot. Passes loft over a crowded/long lane. */
-function executeKick(player: MatchPlayer, state: MatchState): void {
+function executeKick(player: MatchPlayer, state: MatchState, nowMs: number): void {
   const { ball } = state;
   const target = player.kickTarget;
   const kind = player.kickKind;
@@ -112,6 +112,9 @@ function executeKick(player: MatchPlayer, state: MatchState): void {
 
   if (kind === "shoot") {
     ball.vel = scale(dir, SHOT_SPEED);
+    // Flag the shot so the defending keeper can react (and emit juice).
+    ball.shot = { team: player.team, targetY: target.y, atMs: nowMs, attempted: false };
+    state.events.push({ kind: "shot", pos: { ...player.pos } });
     return;
   }
 
@@ -172,7 +175,7 @@ export function resolveWindups(state: MatchState, nowMs: number): void {
       continue;
     }
     if (nowMs >= player.kickReleaseAtMs) {
-      executeKick(player, state);
+      executeKick(player, state, nowMs);
       player.kickKind = null;
       player.kickTarget = null;
     }
@@ -207,6 +210,13 @@ export function updateOutfieldPlayer(
   nowMs: number,
 ): void {
   const { ball } = state;
+
+  // Post-save restart: while the keeper holds the ball, everyone trots back to shape.
+  if (nowMs < ball.gkHoldUntilMs) {
+    player.aiState = "HOLD_SHAPE";
+    player.moveTarget = computeHomeSlot(player, player.slotIndex, ball);
+    return;
+  }
 
   if (player.hasBall) {
     updateCarrier(player, state, nowMs);
