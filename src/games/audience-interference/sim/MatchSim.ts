@@ -43,6 +43,7 @@ function createPlayer(team: Team, slotIndex: number): MatchPlayer {
     kickTarget: null,
     skill: 0.55 + Math.random() * 0.3,
     hasBall: false,
+    shakeUntilMs: 0,
   };
 }
 
