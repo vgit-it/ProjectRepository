@@ -19,6 +19,10 @@ const baked: Record<Team, HTMLCanvasElement[]> = { home: [], away: [] };
 let ready = false;
 let frameW = 0;
 let frameH = 0;
+// Vertical position of the sprite's real feet (bottom-most opaque row) as a fraction
+// of frame height. The art has transparent padding below the feet, so anchoring on
+// the raw image edge makes players float; we anchor on this instead. 1 = no padding.
+let footFraction = 1;
 
 const img = new Image();
 img.onload = () => {
@@ -31,9 +35,30 @@ img.onload = () => {
       baked[team].push(bakeFrame(img, f, TEAM_TINT[team]));
     }
   }
+  footFraction = computeFootFraction(baked.home[0]);
   ready = true;
 };
 img.src = SPRITE_URL;
+
+/** Finds the bottom-most non-transparent row in a baked frame and returns its
+ * position as a fraction of frame height, so callers can drop the empty padding. */
+function computeFootFraction(canvas: HTMLCanvasElement | undefined): number {
+  if (!canvas) return 1;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return 1;
+  const { width, height } = canvas;
+  if (width <= 0 || height <= 0) return 1;
+  const ALPHA_THRESHOLD = 16;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) {
+        return (y + 1) / height;
+      }
+    }
+  }
+  return 1;
+}
 
 /** Render one frame onto an offscreen canvas, multiplied by the team color and
  * re-masked to the sprite's own alpha so transparency/dark outlines stay clean. */
@@ -69,4 +94,10 @@ export function getPlayerFrame(team: Team, frameIndex: 0 | 1): CanvasImageSource
 /** Width-to-height ratio of a single frame; 1 until loaded. */
 export function playerFrameAspect(): number {
   return frameH > 0 ? frameW / frameH : 1;
+}
+
+/** Fraction of the frame height at which the sprite's feet actually sit (the rest
+ * below is transparent padding). 1 until loaded / if there is no padding. */
+export function playerFrameFootFraction(): number {
+  return footFraction;
 }
