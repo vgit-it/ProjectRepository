@@ -6,7 +6,12 @@ import {
 } from "../constants";
 import type { GoalkeeperPlayer, MatchPlayer, Team } from "../types";
 import { length } from "../vec";
-import { getPlayerFrame, isPlayerSpriteReady, playerFrameAspect } from "./playerSprite";
+import {
+  getPlayerFrame,
+  isPlayerSpriteReady,
+  playerFrameAspect,
+  playerFrameFootFraction,
+} from "./playerSprite";
 import type { Renderer } from "./Renderer";
 
 // DEV PALETTE: see drawPitch.ts for the scoped CLAUDE.md palette exception note.
@@ -46,8 +51,9 @@ export function drawPlayers(renderer: Renderer, players: MatchPlayer[], nowMs: n
         ctx.save();
         ctx.translate(sp.x, sp.y);
         if (facingLeft.get(player.id)) ctx.scale(-1, 1);
-        // anchor so the sprite's feet sit on the projected ground point
-        ctx.drawImage(frame, -w / 2, -h + radiusPx * 0.15, w, h);
+        // Anchor on the sprite's real feet (ignoring the transparent padding below
+        // them) so players sit on the projected ground point instead of floating.
+        ctx.drawImage(frame, -w / 2, -h * playerFrameFootFraction() + radiusPx * 0.15, w, h);
         ctx.restore();
       }
     } else {
