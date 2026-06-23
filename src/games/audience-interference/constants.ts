@@ -29,7 +29,7 @@ export const PICKUP_BLOCK_MS = 400;
 
 export const AI_DECISION_INTERVAL_MS = 300;
 
-export const SHOT_SPEED = 28;
+export const SHOT_SPEED = 34;
 export const PASS_SPEED = 18;
 export const BALL_DRAG_PER_SEC = 0.55; // exponential velocity decay coefficient
 export const BALL_BOUNDARY_DAMPING = 0.55;
@@ -53,7 +53,23 @@ export const CONTEST_HOLD_MS = 700;
 /** How far (m) the winner surges forward with the ball after winning the tussle. */
 export const CONTEST_WIN_BURST_M = 4;
 /** How long (ms) the loser is frozen after losing the tussle. */
-export const CONTEST_LOSER_STUN_MS = 600;
+export const CONTEST_LOSER_STUN_MS = 5000;
+
+// ---------- ball-carrier decisions ----------
+// The carrier commits to run/pass/shoot and sticks with it for a few seconds rather
+// than re-scoring every AI tick, then winds up briefly before a kick actually fires.
+/** How long (ms) a committed "run" decision is held before the carrier re-decides. */
+export const CARRIER_DECISION_MS = 3000;
+/** Pre-kick wind-up (ms): the carrier freezes on his idle frame, then the kick fires. */
+export const KICK_WINDUP_MS = 500;
+/** An opponent within this (m) of the carrier counts as "approaching" → favors a pass. */
+export const CARRIER_APPROACH_M = 9;
+/** An opponent this close (m) breaks a committed run early so the carrier can react. */
+export const CARRIER_PANIC_M = 4;
+/** Carrier depth past this fraction of the pitch → shooting joins the decision set. */
+export const FINAL_THIRD_FRAC = 2 / 3;
+/** Lane width (m) toward goal that must be blocker-free to count as "clear space". */
+export const GOAL_LANE_WIDTH = 4;
 
 export const DEAD_BALL_FREEZE_MS = 700;
 export const GOAL_CELEBRATION_FREEZE_MS = 2200;

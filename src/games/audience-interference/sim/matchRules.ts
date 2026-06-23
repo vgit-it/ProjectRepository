@@ -41,6 +41,10 @@ function resetForKickoff(
     player.hasBall = false;
     player.aiState = "HOLD_SHAPE";
     player.stunnedUntilMs = 0;
+    player.runCommitUntilMs = 0;
+    player.kickKind = null;
+    player.kickReleaseAtMs = 0;
+    player.kickTarget = null;
   }
 
   const carrier = state.players.find(
