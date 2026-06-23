@@ -1,33 +1,42 @@
 import type { InputIntent, ItemId, Vec2 } from "../types";
 import { ITEM_DEFS, ITEM_ORDER } from "../sim/items";
+import { clampMagnitude } from "../vec";
 
 export interface ControlsConfig {
-  canvas: HTMLCanvasElement;
-  /** container the on-screen move / item buttons are built into */
+  /** container the on-screen D-pad / throw / item buttons are built into */
   root: HTMLElement;
-  /** maps a CSS-pixel pointer position (relative to the canvas) to a world point */
-  screenToWorld: (css: Vec2) => Vec2;
   /** notified when the held item changes, so the HUD can reflect it */
   onItemChange?: (item: ItemId) => void;
 }
 
-/** Lift the reticle this many CSS px above a touch point so the fingertip doesn't
- * cover it. Mouse aiming is exact (cursor is a point) and gets no offset. */
-const TOUCH_AIM_OFFSET_PX = 60;
+/** Max throw-joystick deflection (CSS px from the button centre) that maps to full
+ * reach. Roughly the button radius, so dragging to the rim is "throw as far as I can". */
+const THROW_STICK_RADIUS_PX = 56;
+
+type DirKey = "up" | "down" | "left" | "right";
+const DIR_VEC: Record<DirKey, Vec2> = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
 
 /** Unifies touch and desktop into one InputIntent:
- *  - move: on-screen ◀ ▶ buttons or ←/→ + A/D hop around the perch ring
- *  - aim/throw: a single slingshot drag anywhere on the pitch (pointer events cover
- *    both mouse and touch) — press to aim, drag to point, release to launch. */
+ *  - move: a 4-way D-pad (or arrow keys / WASD) hops between perches; directions are
+ *    screen-relative and the sim picks the perch most aligned with them.
+ *  - aim/throw: a hold joystick (bottom-right). Press to start aiming, deflect to place
+ *    the reticle within reach (deflection maps straight to the landing offset), release
+ *    to launch. Pointer events cover both mouse and touch. */
 export class InputController {
   private keys = new Set<string>();
 
-  /** ring direction held via the on-screen buttons (keyboard is folded in at read()) */
-  private btnDir: -1 | 0 | 1 = 0;
+  /** directions currently held via the on-screen D-pad (keyboard is folded in at read) */
+  private btnDirs = new Set<DirKey>();
 
   private aiming = false;
-  private aimPoint: Vec2 = { x: 0, y: 0 };
-  private aimPointerId: number | null = null;
+  private aimVector: Vec2 = { x: 0, y: 0 };
+  private throwPointerId: number | null = null;
+  private throwCenter: Vec2 = { x: 0, y: 0 };
   private throwReleased = false;
 
   private selectedItem: ItemId = "popcorn";
@@ -38,17 +47,16 @@ export class InputController {
   constructor(private readonly cfg: ControlsConfig) {
     this.buildDom();
     this.attachKeyboard();
-    this.attachAim();
   }
 
   read(): InputIntent {
-    const moveDir = this.aiming ? 0 : this.combinedMoveDir();
     const released = this.throwReleased;
     this.throwReleased = false;
     return {
-      moveDir,
+      // movement is locked while a throw is being aimed
+      moveDir: this.aiming ? { x: 0, y: 0 } : this.combinedMoveDir(),
       aiming: this.aiming,
-      aimPoint: this.aimPoint,
+      aimVector: this.aimVector,
       throwReleased: released,
       ducking: this.keys.has("shift"),
       selectedItem: this.selectedItem,
@@ -62,12 +70,19 @@ export class InputController {
 
   // ---------- move direction ----------
 
-  private combinedMoveDir(): -1 | 0 | 1 {
-    if (this.btnDir !== 0) return this.btnDir;
-    const left = this.keys.has("arrowleft") || this.keys.has("a");
-    const right = this.keys.has("arrowright") || this.keys.has("d");
-    if (left === right) return 0; // none or both -> hold
-    return left ? -1 : 1;
+  /** Sum of held D-pad buttons + keyboard directions; opposites cancel. */
+  private combinedMoveDir(): Vec2 {
+    let x = 0;
+    let y = 0;
+    for (const d of this.btnDirs) {
+      x += DIR_VEC[d].x;
+      y += DIR_VEC[d].y;
+    }
+    if (this.keys.has("arrowleft") || this.keys.has("a")) x -= 1;
+    if (this.keys.has("arrowright") || this.keys.has("d")) x += 1;
+    if (this.keys.has("arrowup") || this.keys.has("w")) y -= 1;
+    if (this.keys.has("arrowdown") || this.keys.has("s")) y += 1;
+    return { x, y };
   }
 
   private selectItem(item: ItemId): void {
@@ -76,11 +91,19 @@ export class InputController {
     this.cfg.onItemChange?.(item);
   }
 
-  // ---------- DOM controls (move + item buttons) ----------
+  // ---------- DOM controls (D-pad + throw joystick + item buttons) ----------
 
   private buildDom(): void {
-    const left = this.makeMoveButton("ai-move-left", "◀", -1);
-    const right = this.makeMoveButton("ai-move-right", "▶", 1);
+    const dpad = document.createElement("div");
+    dpad.className = "ai-dpad";
+    dpad.append(
+      this.makeDirButton("ai-dpad-up", "▲", "up"),
+      this.makeDirButton("ai-dpad-left", "◀", "left"),
+      this.makeDirButton("ai-dpad-right", "▶", "right"),
+      this.makeDirButton("ai-dpad-down", "▼", "down"),
+    );
+
+    const throwBtn = this.makeThrowButton();
 
     const items = document.createElement("div");
     items.className = "ai-items";
@@ -96,36 +119,102 @@ export class InputController {
       items.appendChild(b);
     }
 
-    this.cfg.root.append(left, right, items);
+    this.cfg.root.append(dpad, throwBtn, items);
     this.selectItem("popcorn");
 
     this.cleanups.push(() => {
-      left.remove();
-      right.remove();
+      dpad.remove();
+      throwBtn.remove();
       items.remove();
     });
   }
 
-  /** A press-and-hold ring-hop button. Holding repeats via the sim's PERCH_STEP_MS. */
-  private makeMoveButton(className: string, glyph: string, dir: -1 | 1): HTMLElement {
+  /** A press-and-hold D-pad button. Holding repeats via the sim's PERCH_STEP_MS. */
+  private makeDirButton(className: string, glyph: string, dir: DirKey): HTMLElement {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = className;
     btn.textContent = glyph;
     const press = (e: PointerEvent) => {
-      this.btnDir = dir;
+      this.btnDirs.add(dir);
       btn.classList.add("is-held");
       btn.setPointerCapture(e.pointerId);
       e.preventDefault();
     };
     const release = () => {
-      if (this.btnDir === dir) this.btnDir = 0;
+      this.btnDirs.delete(dir);
       btn.classList.remove("is-held");
     };
     btn.addEventListener("pointerdown", press);
     btn.addEventListener("pointerup", release);
     btn.addEventListener("pointercancel", release);
     btn.addEventListener("pointerleave", release);
+    return btn;
+  }
+
+  /** The hold-to-aim throw joystick. Press → aim; deflect → place reticle (deflection
+   * maps to the landing offset, clamped to the rim); release → launch. */
+  private makeThrowButton(): HTMLElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ai-throw";
+    const knob = document.createElement("span");
+    knob.className = "ai-throw-knob";
+    btn.appendChild(knob);
+
+    const recenter = (): void => {
+      this.aimVector = { x: 0, y: 0 };
+      knob.style.transform = "translate(-50%, -50%)";
+    };
+
+    const updateFrom = (e: PointerEvent): void => {
+      const v = clampMagnitude(
+        {
+          x: (e.clientX - this.throwCenter.x) / THROW_STICK_RADIUS_PX,
+          y: (e.clientY - this.throwCenter.y) / THROW_STICK_RADIUS_PX,
+        },
+        1,
+      );
+      this.aimVector = v;
+      // visual knob follows the deflection within the button
+      knob.style.transform = `translate(calc(-50% + ${v.x * THROW_STICK_RADIUS_PX}px), calc(-50% + ${v.y * THROW_STICK_RADIUS_PX}px))`;
+    };
+
+    const onDown = (e: PointerEvent) => {
+      if (this.throwPointerId !== null) return; // ignore extra fingers
+      this.throwPointerId = e.pointerId;
+      const rect = btn.getBoundingClientRect();
+      this.throwCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      this.aiming = true;
+      btn.classList.add("is-held");
+      btn.setPointerCapture(e.pointerId);
+      updateFrom(e);
+      e.preventDefault();
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== this.throwPointerId) return;
+      updateFrom(e);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== this.throwPointerId) return;
+      this.throwPointerId = null;
+      this.aiming = false;
+      this.throwReleased = true; // launch toward the current reticle
+      btn.classList.remove("is-held");
+      recenter();
+    };
+    const onCancel = (e: PointerEvent) => {
+      if (e.pointerId !== this.throwPointerId) return;
+      this.throwPointerId = null;
+      this.aiming = false; // no throw on a cancelled gesture
+      btn.classList.remove("is-held");
+      recenter();
+    };
+
+    btn.addEventListener("pointerdown", onDown);
+    btn.addEventListener("pointermove", onMove);
+    btn.addEventListener("pointerup", onUp);
+    btn.addEventListener("pointercancel", onCancel);
     return btn;
   }
 
@@ -147,57 +236,6 @@ export class InputController {
     this.cleanups.push(() => {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
-    });
-  }
-
-  // ---------- slingshot aim on the canvas (mouse + touch via pointer events) ----------
-
-  private attachAim(): void {
-    const { canvas } = this.cfg;
-
-    const toWorld = (e: PointerEvent): Vec2 => {
-      const rect = canvas.getBoundingClientRect();
-      const offsetY = e.pointerType === "mouse" ? 0 : TOUCH_AIM_OFFSET_PX;
-      return this.cfg.screenToWorld({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top - offsetY,
-      });
-    };
-
-    const onDown = (e: PointerEvent) => {
-      if (this.aimPointerId !== null) return; // ignore extra fingers mid-drag
-      this.aimPointerId = e.pointerId;
-      this.aiming = true;
-      this.aimPoint = toWorld(e);
-      canvas.setPointerCapture(e.pointerId);
-      e.preventDefault();
-    };
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerId !== this.aimPointerId) return;
-      this.aimPoint = toWorld(e);
-    };
-    const onUp = (e: PointerEvent) => {
-      if (e.pointerId !== this.aimPointerId) return;
-      this.aimPoint = toWorld(e);
-      this.aimPointerId = null;
-      this.aiming = false;
-      this.throwReleased = true;
-    };
-    const onCancel = (e: PointerEvent) => {
-      if (e.pointerId !== this.aimPointerId) return;
-      this.aimPointerId = null;
-      this.aiming = false; // no throw on a cancelled gesture
-    };
-
-    canvas.addEventListener("pointerdown", onDown);
-    canvas.addEventListener("pointermove", onMove);
-    canvas.addEventListener("pointerup", onUp);
-    canvas.addEventListener("pointercancel", onCancel);
-    this.cleanups.push(() => {
-      canvas.removeEventListener("pointerdown", onDown);
-      canvas.removeEventListener("pointermove", onMove);
-      canvas.removeEventListener("pointerup", onUp);
-      canvas.removeEventListener("pointercancel", onCancel);
     });
   }
 }

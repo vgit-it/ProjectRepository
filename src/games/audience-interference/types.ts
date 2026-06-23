@@ -140,11 +140,11 @@ export interface Spectator {
   nextStepAtMs: number;
   heldItem: ItemId;
   itemCooldowns: Record<ItemId, number>;
-  /** true while a slingshot drag is in progress (aiming a throw) */
+  /** true while the throw joystick is held (aiming a throw) */
   aiming: boolean;
-  /** world-space landing point under the slingshot drag */
+  /** world-space landing point the throw-joystick reticle is over */
   aimTarget: Vec2;
-  /** 0..1 throw power == how far the reticle reaches; drives the slingshot band */
+  /** 0..1 throw power == joystick deflection magnitude / reach; drives the power band */
   charge: number;
 }
 
@@ -211,11 +211,14 @@ export interface SuspicionState {
 // ---------- input intent (shared desktop+mobile, M2+) ----------
 
 export interface InputIntent {
-  /** ring traversal this frame: -1 = CCW (prev perch), +1 = CW (next perch), 0 = hold */
-  moveDir: -1 | 0 | 1;
+  /** screen/world-axis direction requested this frame (+x = right, +y = down/near,
+   * -y = up/far); {x:0,y:0} = hold. Only the direction matters — the sim hops to the
+   * neighbouring perch most aligned with it. */
+  moveDir: Vec2;
   aiming: boolean;
-  /** absolute world-space landing target while aiming (already screen->world) */
-  aimPoint: Vec2;
+  /** throw-joystick deflection while aiming: each component in [-1,1], magnitude
+   * clamped to 1. The sim scales it by the held item's range to place the reticle. */
+  aimVector: Vec2;
   throwReleased: boolean;
   ducking: boolean;
   selectedItem: ItemId;

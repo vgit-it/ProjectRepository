@@ -92,23 +92,6 @@ export class Camera {
     };
   }
 
-  /** Inverse of `project`: maps a device-pixel screen point back to a world point.
-   * Solves the perspective denominator for `v` first (since y depends on v through
-   * `denom`), then recovers `u` at the resulting depth scale. */
-  unproject(sxPx: number, syPx: number): Vec2 {
-    const dy = syPx - this.heightPx / 2;
-    const a = CAMERA_TILT / CAMERA_DEPTH_M;
-    // dy = v * pxPerM / (1 - a*v)  =>  v = dy / (pxPerM + a*dy)
-    let v = dy / (this.pxPerM + a * dy);
-    // Respect the same denominator clamp project() applies, so far-field points
-    // (in the flattened region) invert consistently rather than blowing up.
-    const d = this.denom(v);
-    if (d <= 0.25 + 1e-6) v = dy / this.pxPerM / 0.25;
-    const scale = this.pxPerM / this.denom(v);
-    const u = (sxPx - this.widthPx / 2) / scale;
-    return { x: this.focus.x + u, y: this.focus.y + v };
-  }
-
   /** True when a projected point lies within (a margin around) the viewport. */
   inView(sp: Projected, marginPx = 80): boolean {
     return (
