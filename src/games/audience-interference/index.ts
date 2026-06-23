@@ -8,6 +8,7 @@ import { drawPlayers } from "./render/drawPlayers";
 import { drawProjectiles } from "./render/drawProjectiles";
 import { drawSpectator } from "./render/drawSpectator";
 import { drawStands } from "./render/drawStands";
+import { Fx } from "./render/fx";
 import { Renderer } from "./render/Renderer";
 import { ITEM_DEFS, ITEM_ORDER } from "./sim/items";
 import { WorldSim } from "./sim/WorldSim";
@@ -50,6 +51,7 @@ function formatClock(elapsedMs: number): string {
 export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): BootHandle {
   const renderer = new Renderer(canvas);
   let sim = new WorldSim();
+  const fx = new Fx();
 
   const resize = (): void => {
     const rect = canvas.getBoundingClientRect();
@@ -106,7 +108,17 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
   function render(): void {
     renderer.camera.follow(focusTarget());
     const now = sim.nowMs;
+
+    // Drain one-shot sim events into the juice layer, then advance the shake/FX.
+    fx.consume(sim.match.state.events, now);
+    sim.match.state.events.length = 0;
+    fx.update(now);
+
     renderer.clear();
+    const { ctx } = renderer;
+    const offset = fx.cameraOffset();
+    ctx.save();
+    ctx.translate(offset.x, offset.y);
     drawStands(renderer, now);
     drawPitch(renderer);
     drawPlayers(renderer, sim.match.state.players, now);
@@ -114,6 +126,8 @@ export function boot(canvas: HTMLCanvasElement, options: BootOptions = {}): Boot
     drawProjectiles(renderer, sim.projectiles, now);
     drawSpectator(renderer, sim.spectator);
     drawAim(renderer, sim.spectator, now);
+    fx.draw(renderer, now);
+    ctx.restore();
     emitHud();
   }
 

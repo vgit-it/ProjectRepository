@@ -34,6 +34,8 @@ function resetForKickoff(
   ball.lastDuelAtMs = 0;
   ball.freezeUntilMs = nowMs + freezeMs;
   ball.contest = null;
+  ball.shot = null;
+  ball.gkHoldUntilMs = 0;
 
   for (const player of state.players) {
     player.pos = computeHomeSlot(player, player.slotIndex, ball);
@@ -83,6 +85,8 @@ function awardOutOfBounds(state: MatchState, nowMs: number): void {
   ball.pickupBlockedUntilMs = 0;
   ball.freezeUntilMs = nowMs + DEAD_BALL_FREEZE_MS;
   ball.contest = null;
+  ball.shot = null;
+  ball.gkHoldUntilMs = 0;
 
   if (nearest) {
     nearest.hasBall = true;
@@ -104,6 +108,7 @@ export function applyBallBoundaryEvent(
   if (event === "goal-home" || event === "goal-away") {
     const scoringTeam: Team = event === "goal-home" ? "home" : "away";
     state.score[scoringTeam] += 1;
+    state.events.push({ kind: "goal", pos: { x: state.ball.pos.x, y: PITCH_HEIGHT / 2 } });
     resetForKickoff(state, otherTeam(scoringTeam), nowMs, GOAL_CELEBRATION_FREEZE_MS);
     return;
   }

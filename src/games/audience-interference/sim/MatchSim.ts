@@ -1,6 +1,7 @@
 import {
   AI_DECISION_INTERVAL_MS,
   FORMATION,
+  GK_DIVE_SPEED_MULT,
   GOAL_Y_MAX,
   GOAL_Y_MIN,
   PITCH_HEIGHT,
@@ -11,7 +12,12 @@ import type { GoalkeeperPlayer, MatchPlayer, MatchState, Team } from "../types";
 import { resolvePickups, stepBallPhysics } from "./ballPhysics";
 import { resolveContest } from "./contest";
 import { resolveDuels } from "./duel";
-import { maybeClearBall, updateGoalkeeper } from "./goalkeeper";
+import {
+  distributeFromGoalkeeper,
+  isGoalkeeperDiving,
+  resolveGoalkeeperSave,
+  updateGoalkeeper,
+} from "./goalkeeper";
 import { applyBallBoundaryEvent, resetForHalfStart } from "./matchRules";
 import { stepMovement } from "./movement";
 import { findNearestPerTeam, resolveWindups, updateOutfieldPlayer } from "./PlayerAI";
@@ -90,7 +96,10 @@ export class MatchSim {
         lastDuelAtMs: 0,
         freezeUntilMs: 0,
         contest: null,
+        shot: null,
+        gkHoldUntilMs: 0,
       },
+      events: [],
     };
     resetForHalfStart(this.state, "home", this.simMs);
   }
@@ -123,16 +132,23 @@ export class MatchSim {
         if (nowMs < player.stunnedUntilMs) continue;
         const gk = player as GoalkeeperPlayer;
         const teammates = this.state.players.filter((p) => p.team === gk.team && p.id !== gk.id);
-        maybeClearBall(gk, this.state);
+        distributeFromGoalkeeper(gk, this.state, nowMs);
         updateGoalkeeper(gk, this.state.ball, teammates, nowMs);
       }
     }
 
     const dtSec = dtMs / 1000;
     for (const player of this.state.players) {
-      // Full freeze while stunned takes precedence over the item-daze slow.
-      const speedMultiplier =
+      // Full freeze while stunned takes precedence over the item-daze slow; a diving
+      // keeper gets a speed boost so it can reach the corners.
+      let speedMultiplier =
         nowMs < player.stunnedUntilMs ? 0 : nowMs < player.dazedUntilMs ? 0.35 : 1;
+      if (
+        player.role === "GK" &&
+        isGoalkeeperDiving(player as GoalkeeperPlayer, this.state.ball, nowMs)
+      ) {
+        speedMultiplier = GK_DIVE_SPEED_MULT;
+      }
       stepMovement(player, dtSec, speedMultiplier);
     }
 
@@ -145,7 +161,9 @@ export class MatchSim {
     // Contest before pickup: a tussle freezes the ball, so resolvePickups no-ops while
     // it's active and the winner is decided by the skill-weighted roll instead.
     resolveContest(this.state, nowMs);
+    // A keeper save claims the ball before pickup, and pre-empts a goal on the same tick.
+    const saved = resolveGoalkeeperSave(this.state, nowMs);
     resolvePickups(this.state, nowMs);
-    applyBallBoundaryEvent(this.state, event, nowMs);
+    if (!saved) applyBallBoundaryEvent(this.state, event, nowMs);
   }
 }

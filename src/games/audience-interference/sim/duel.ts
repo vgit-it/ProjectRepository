@@ -16,6 +16,8 @@ export function resolveDuels(state: MatchState, nowMs: number): void {
   const { ball } = state;
   if (!ball.possessedBy) return;
   if (nowMs - ball.lastDuelAtMs < DUEL_COOLDOWN_MS) return;
+  // No stealing the keeper during the post-save restart.
+  if (nowMs < ball.gkHoldUntilMs) return;
 
   const carrier = state.players.find((p) => p.id === ball.possessedBy);
   if (!carrier) return;
@@ -24,6 +26,8 @@ export function resolveDuels(state: MatchState, nowMs: number): void {
   let challengerDist = Infinity;
   for (const opp of state.players) {
     if (opp.team === carrier.team) continue;
+    // A frozen player (e.g. a beaten tussle loser) can't fight for the ball.
+    if (nowMs < opp.stunnedUntilMs) continue;
     const d = distance(opp.pos, carrier.pos);
     if (d < DUEL_RADIUS && d < challengerDist) {
       challengerDist = d;
@@ -54,4 +58,6 @@ export function resolveDuels(state: MatchState, nowMs: number): void {
   const popOffDir = normalize({ x: Math.random() - 0.5, y: Math.random() - 0.5 });
   const popOffSpeed = POP_OFF_MIN_SPEED + Math.random() * (POP_OFF_MAX_SPEED - POP_OFF_MIN_SPEED);
   ball.vel = scale(popOffDir, popOffSpeed);
+
+  state.events.push({ kind: "steal", pos: { ...carrier.pos } });
 }
