@@ -21,7 +21,6 @@ export const PLAYER_RUN_THRESHOLD = 0.6;
  * and the PLAYER_RADIUS-based dribble offset in ballPhysics.ts are unaffected). */
 export const PLAYER_SPRITE_SCALE = 3;
 
-export const PRESS_RADIUS = 10;
 export const DUEL_RADIUS = 1.6;
 export const DUEL_COOLDOWN_MS = 600;
 export const DUEL_JITTER = 0.5;
@@ -43,6 +42,18 @@ export const BALL_GRAVITY = 22;
 export const LOFT_MIN_DIST = 18;
 /** How long (ms) a player is fully frozen after being dispossessed in a duel. */
 export const STEAL_STUN_MS = 1500;
+
+// ---------- loose-ball tussle ----------
+// When the two chasers (one per team) both reach a loose ball, they freeze together
+// for a beat, then a skill-weighted-but-random winner surges off with it.
+/** Both opponents within this distance (m) of a loose ball trigger a tussle. */
+export const CONTEST_RADIUS = 2.4;
+/** How long (ms) both players hold frozen together over the contested ball. */
+export const CONTEST_HOLD_MS = 700;
+/** How far (m) the winner surges forward with the ball after winning the tussle. */
+export const CONTEST_WIN_BURST_M = 4;
+/** How long (ms) the loser is frozen after losing the tussle. */
+export const CONTEST_LOSER_STUN_MS = 600;
 
 export const DEAD_BALL_FREEZE_MS = 700;
 export const GOAL_CELEBRATION_FREEZE_MS = 2200;
@@ -99,12 +110,15 @@ export interface FormationSlot {
   laneDrift: number;
 }
 
+// Spread wide and hold shape: lines pushed apart, lanes widened, and drift roughly
+// halved so off-ball players stay in their spots instead of bunching toward the ball
+// (only the single nearest per team chases — see PlayerAI.updateOutfieldPlayer).
 export const FORMATION: FormationSlot[] = [
   { role: "GK", depth: 0.04, lane: 0.5, depthDrift: 0, laneDrift: 0.05 },
-  { role: "DEF", depth: 0.22, lane: 0.32, depthDrift: 0.15, laneDrift: 0.2 },
-  { role: "DEF", depth: 0.22, lane: 0.68, depthDrift: 0.15, laneDrift: 0.2 },
-  { role: "MID", depth: 0.48, lane: 0.2, depthDrift: 0.25, laneDrift: 0.3 },
-  { role: "MID", depth: 0.48, lane: 0.5, depthDrift: 0.25, laneDrift: 0.3 },
-  { role: "MID", depth: 0.48, lane: 0.8, depthDrift: 0.25, laneDrift: 0.3 },
-  { role: "FWD", depth: 0.78, lane: 0.5, depthDrift: 0.05, laneDrift: 0.15 },
+  { role: "DEF", depth: 0.18, lane: 0.22, depthDrift: 0.08, laneDrift: 0.1 },
+  { role: "DEF", depth: 0.18, lane: 0.78, depthDrift: 0.08, laneDrift: 0.1 },
+  { role: "MID", depth: 0.5, lane: 0.12, depthDrift: 0.12, laneDrift: 0.15 },
+  { role: "MID", depth: 0.5, lane: 0.5, depthDrift: 0.12, laneDrift: 0.15 },
+  { role: "MID", depth: 0.5, lane: 0.88, depthDrift: 0.12, laneDrift: 0.15 },
+  { role: "FWD", depth: 0.82, lane: 0.5, depthDrift: 0.04, laneDrift: 0.1 },
 ];

@@ -9,11 +9,12 @@ import {
 import { createMatchClock, isPlayPaused, stepClock } from "../loop/Clock";
 import type { GoalkeeperPlayer, MatchPlayer, MatchState, Team } from "../types";
 import { resolvePickups, stepBallPhysics } from "./ballPhysics";
+import { resolveContest } from "./contest";
 import { resolveDuels } from "./duel";
 import { maybeClearBall, updateGoalkeeper } from "./goalkeeper";
 import { applyBallBoundaryEvent, resetForHalfStart } from "./matchRules";
 import { stepMovement } from "./movement";
-import { findNearestToLooseBall, updateOutfieldPlayer } from "./PlayerAI";
+import { findNearestPerTeam, updateOutfieldPlayer } from "./PlayerAI";
 
 let nextPlayerId = 0;
 
@@ -84,6 +85,7 @@ export class MatchSim {
         pickupBlockedUntilMs: 0,
         lastDuelAtMs: 0,
         freezeUntilMs: 0,
+        contest: null,
       },
     };
     resetForHalfStart(this.state, "home", this.simMs);
@@ -104,11 +106,11 @@ export class MatchSim {
     this.aiAccumulatorMs += dtMs;
     if (this.aiAccumulatorMs >= AI_DECISION_INTERVAL_MS) {
       this.aiAccumulatorMs %= AI_DECISION_INTERVAL_MS;
-      const nearestToLooseBallId = findNearestToLooseBall(this.state);
+      const nearestPerTeam = findNearestPerTeam(this.state);
       for (const player of this.state.players) {
         // A stunned (just-dispossessed) player makes no decisions until they recover.
         if (nowMs < player.stunnedUntilMs) continue;
-        if (player.role !== "GK") updateOutfieldPlayer(player, this.state, nearestToLooseBallId);
+        if (player.role !== "GK") updateOutfieldPlayer(player, this.state, nearestPerTeam);
       }
     }
 
@@ -132,6 +134,9 @@ export class MatchSim {
 
     const event = stepBallPhysics(this.state, dtSec, nowMs);
     resolveDuels(this.state, nowMs);
+    // Contest before pickup: a tussle freezes the ball, so resolvePickups no-ops while
+    // it's active and the winner is decided by the skill-weighted roll instead.
+    resolveContest(this.state, nowMs);
     resolvePickups(this.state, nowMs);
     applyBallBoundaryEvent(this.state, event, nowMs);
   }
